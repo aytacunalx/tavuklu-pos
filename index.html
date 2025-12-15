@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tavuklu POS</title>
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --panel-bg: #ffffff;
+            --text-color: #333;
+            --primary-color: #ff6f00;
+            --primary-dark: #e65100;
+            --secondary-bg: #eef2f6;
+            --success-color: #2e7d32;
+            --danger-color: #d32f2f;
+            --border-radius: 10px;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0; padding: 15px;
+            background-color: var(--bg-color); color: var(--text-color);
+            height: 100vh; box-sizing: border-box; overflow: hidden;
+        }
+
+        .main-wrapper {
+            max-width: 1400px; margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.8fr 1fr;
+            grid-template-rows: 1fr auto;
+            gap: 15px; height: 100%;
+        }
+
+        .panel {
+            background: var(--panel-bg); border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 15px;
+            display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e0e0e0;
+        }
+
+        .menu-section { grid-column: 1 / 2; grid-row: 1 / 2; }
+        .cart-section { grid-column: 2 / 3; grid-row: 1 / 3; }
+        .bottom-section { grid-column: 1 / 2; grid-row: 2 / 3; height: 250px; }
+
+        /* KATEGORİLER */
+        .category-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #eee; }
+        .cat-btn {
+            flex: 1 0 auto; min-width: 80px; text-align: center; padding: 10px;
+            border-radius: 8px; background: #f5f5f5; border: 1px solid #ddd;
+            cursor: pointer; font-weight: 600; color: #555; transition: 0.2s;
+        }
+        .cat-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-dark); }
+
+        /* ÜRÜNLER */
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; overflow-y: auto; padding-right: 5px; }
+        .product-card {
+            background: #fff; border: 1px solid #eee; border-radius: 8px;
+            padding: 10px; cursor: pointer; display: flex; flex-direction: column;
+            justify-content: space-between; height: 95px; transition: 0.1s;
+        }
+        .product-card:hover { border-color: var(--primary-color); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .product-name { font-weight: 600; font-size: 0.95rem; }
+        .product-price { color: var(--primary-color); font-weight: 800; font-size: 1.1rem; align-self: flex-end; }
+        .product-tag { font-size:0.75rem; color:#999; }
+
+        /* SEPET & FORM */
+        input, select, textarea {
+            width: 100%; padding: 10px; margin-bottom: 8px;
+            background: var(--secondary-bg); border: 1px solid #ddd; border-radius: 6px;
+            font-size: 0.95rem; box-sizing: border-box; outline: none;
+        }
+        .cart-list { flex-grow: 1; overflow-y: auto; background: #fcfcfc; border: 1px solid #eee; border-radius: 8px; margin: 10px 0; padding: 5px; }
+        .cart-item { padding: 8px; border-bottom: 1px solid #eee; background: #fff; margin-bottom: 4px; border-radius: 4px; }
+        .cart-item-header { display: flex; justify-content: space-between; font-weight: 600; }
+        .cart-item-details { font-size: 0.8rem; color: #666; margin-top: 2px; font-style: italic; }
+
+        /* BUTONLAR */
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; color: white; margin-top: 5px; }
+        .btn-primary { background: var(--primary-color); }
+        .btn-danger { background: var(--danger-color); }
+        .btn-success { background: var(--success-color); }
+        .btn-secondary { background: #757575; }
+        .btn-sm { width: auto; padding: 5px 10px; font-size: 0.8rem; margin: 0; }
+        .icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; }
+
+        /* TABLO */
+        .orders-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .orders-table th { text-align: left; padding: 8px; background: #f5f5f5; position: sticky; top: 0; }
+        .orders-table td { padding: 8px; border-bottom: 1px solid #eee; }
+
+        /* MODALS */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background: white; padding: 20px; border-radius: 12px; width: 600px; max-width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        
+        .section-wrapper { margin-bottom: 15px; }
+        .section-label { font-weight: bold; margin-bottom: 5px; display: block; }
+        
+        .option-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .portion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        
+        .opt-btn { padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; text-align: center; }
+        .opt-btn.selected { background: #e8f5e9; border-color: #2e7d32; color: #2e7d32; font-weight: bold; }
+        .opt-btn.excluded { background: #ffebee; border-color: #c62828; color: #c62828; text-decoration: line-through; }
+        
+        .portion-btn { padding: 10px; border: 1px solid #ddd; background: #f9f9f9; cursor: pointer; border-radius: 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        .portion-btn small { font-size: 0.75rem; color:#666; margin-top:2px; }
+        .portion-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-dark); }
+        .portion-btn.active small { color: #ffe0b2; }
+
+        /* PRINT */
+        #receipt-area { display: none; }
+        @media print {
+            @page { size: A6; margin: 0; }
+            body * { visibility: hidden; }
+            #receipt-area, #receipt-area * { visibility: visible; }
+            #receipt-area {
+                position: absolute; left: 0; top: 0; width: 100%; padding: 5mm;
+                box-sizing: border-box; font-family: 'Courier New', monospace; font-size: 10pt; color: black; display: block;
+            }
+            .r-header { text-align: center; margin-bottom: 10px; }
+            .r-logo { font-size: 16pt; font-weight: bold; text-transform: uppercase; }
+            .r-sub { font-size: 9pt; }
+            .r-separator { border-bottom: 1px dashed #000; margin: 8px 0; }
+            .r-info-row { display: flex; justify-content: space-between; font-size: 9pt; }
+            .r-order-type { text-align: center; font-size: 12pt; font-weight: bold; border: 2px solid #000; padding: 5px; margin: 10px 0; background: #eee; }
+            .r-customer-box { border: 2px solid #000; padding: 10px; margin: 5px 0; font-size: 10pt; border-radius: 5px; }
+            .r-table { width: 100%; border-collapse: collapse; margin: 5px 0; }
+            .r-table th { text-align: left; border-bottom: 2px solid #000; padding: 2px 0; font-size: 9pt; }
+            .r-table td { padding: 4px 0; vertical-align: top; border-bottom: 1px dotted #ccc; }
+            .r-price { text-align: right; font-weight: bold; }
+            .r-total-section { margin-top: 10px; text-align: right; }
+            .r-total-line { font-size: 16pt; font-weight: bold; }
+            .r-footer { text-align: center; margin-top: 20px; font-size: 9pt; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="panel menu-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="margin:0; color:#444;">🍔 Menü</h3>
+            <div style="display:flex; gap:5px;">
+                <button class="btn btn-secondary btn-sm" onclick="openReports()">📊 Rapor</button>
+                <!-- <button class="btn btn-secondary btn-sm" onclick="openSettings()">⚙️ Ayar</button> -->
+            </div>
+        </div>
+        <div id="category-filters" class="category-container"></div>
+        <div id="product-list" class="product-grid"></div>
+    </div>
+
+    <div class="panel cart-section">
+        <h3 style="margin:0 0 10px 0; border-bottom:2px solid var(--primary-color); padding-bottom:5px;">📝 Sipariş</h3>
+        <input type="tel" id="cust-phone" placeholder="Telefon (555...)" onkeyup="searchCustomer(this.value)" autocomplete="off">
+        <div id="cust-details" style="display:none; background:#fff8e1; padding:8px; border-radius:6px; margin-bottom:8px; border:1px solid #ffe0b2; font-size:0.9rem;">
+            <input type="text" id="cust-name" placeholder="Ad Soyad">
+            <textarea id="cust-address" rows="2" placeholder="Adres"></textarea>
+            <input type="text" id="cust-note" placeholder="Kalıcı Not">
+            <div id="cust-stats" style="color:#e65100; font-weight:bold; margin-top:2px;"></div>
+        </div>
+        <div class="cart-list" id="cart-list"><div style="text-align: center; padding: 30px; color: #aaa;">Sepet Boş</div></div>
+        <div style="margin-top:auto;">
+            <div style="display:flex; gap:5px;">
+                <select id="order-type"><option value="Paket">🛵 Paket</option><option value="Gel-Al">🥡 Gel-Al</option><option value="Masa">🍽️ Masa</option></select>
+                <select id="payment-type"><option value="Nakit">💵 Nakit</option><option value="Kredi Kartı">💳 K.Kartı</option></select>
+            </div>
+            <input type="text" id="order-note" placeholder="Genel Sipariş Notu">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin:10px 0;">
+                <span style="font-size:1.1rem; color:#666;">Toplam:</span>
+                <span id="cart-total" style="font-size: 1.8rem; color: var(--primary-color); font-weight:800;">0.00 ₺</span>
+            </div>
+            <button class="btn btn-primary" onclick="completeOrder()">YAZDIR & KAYDET</button>
+        </div>
+    </div>
+
+    <div class="panel bottom-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <h4 style="margin:0;">🚀 Son İşlemler</h4>
+            <button class="btn btn-danger btn-sm" onclick="closeDay()">Z Raporu</button>
+        </div>
+        <div style="overflow-y:auto;">
+            <table class="orders-table">
+                <thead><tr><th>Saat</th><th>Müşteri</th><th>Tutar</th><th>Durum</th><th>#</th></tr></thead>
+                <tbody id="active-orders-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modal-options" class="modal-overlay">
+    <div class="modal-box">
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+            <span style="font-size:1.2rem; font-weight:bold;" id="opt-product-name">Ürün Adı</span>
+            <button class="icon-btn" onclick="closeModal('modal-options')">✕</button>
+        </div>
+        
+        <div id="wrapper-portions" class="section-wrapper">
+            <span class="section-label">Porsiyon (Gramaj):</span>
+            <div class="portion-grid" id="portion-container"></div>
+        </div>
+
+        <div id="wrapper-options" class="section-wrapper">
+            <span class="section-label">Seçenekler:</span>
+            <div class="option-grid">
+                <div class="opt-btn" onclick="toggleOption(this, 'Salata Olmasın')">🥗 Salata Olmasın</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Makarna Bol')">🍝 Makarna Bol</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Soğansız')">🧅 Soğansız</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Turşusuz')">🥒 Turşusuz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Domatessiz')">🍅 Domatessiz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Mayonezsiz')">⚪ Mayonezsiz</div>
+            </div>
+        </div>
+
+        <div class="section-wrapper" style="background:#f9f9f9; padding:10px; border-radius:8px; display:flex; align-items:center; justify-content:center; gap:20px;">
+            <span style="font-weight:bold;">Adet:</span>
+            <button class="btn btn-secondary" style="width:40px; margin:0; font-weight:bold;" onclick="updateModalQty(-1)">-</button>
+            <span id="modal-qty" style="font-size:1.5rem; font-weight:bold; width:30px; text-align:center;">1</span>
+            <button class="btn btn-secondary" style="width:40px; margin:0; font-weight:bold;" onclick="updateModalQty(1)">+</button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px;">
+            <div style="font-size:1.5rem; font-weight:bold; color:var(--primary-color);">
+                <span id="opt-price">0.00</span> ₺
+            </div>
+            <button class="btn btn-primary" style="width:150px;" onclick="confirmAddToCart()">Ekle</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-settings" class="modal-overlay">
+    <div class="modal-box" style="width: 750px;">
+        <h3>⚙️ Ürün Yönetimi</h3>
+        <div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">
+            <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+                <input type="text" id="new-prod-name" placeholder="Ürün Adı" style="margin:0;">
+                <select id="new-prod-cat" onchange="togglePriceInputs()" style="margin:0;">
+                    <option value="Tabak">Tabak</option>
+                    <option value="Tombik Ekmek">Tombik Ekmek</option>
+                    <option value="Yarım Ekmek">Yarım Ekmek</option>
+                    <option value="Tam Ekmek">Tam Ekmek</option>
+                    <option value="Tam Ekmek">Burger</option>
+                    <option value="İçecek">İçecek</option>
+                    <option value="Yan ürünler">Yan ürünler</option>
+                </select>
+                <input type="number" id="new-prod-price" placeholder="100gr / Tek Fiyat" style="margin:0;">
+            </div>
+            <div id="extra-prices" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:10px; background:#fff3e0; padding:10px; border-radius:6px;">
+                <input type="number" id="new-price-200" placeholder="200gr Fiyatı">
+                <input type="number" id="new-price-300" placeholder="300gr Fiyatı">
+                <input type="number" id="new-price-400" placeholder="400gr Fiyatı">
+            </div>
+            <button class="btn btn-success" onclick="addNewProduct()">+ Yeni Ürün Ekle</button>
+        </div>
+        <div style="max-height:400px; overflow-y:auto;">
+            <table class="orders-table" id="mgmt-table">
+                <thead><tr><th>Ürün</th><th>Kat.</th><th>100gr/Tek</th><th>200gr</th><th>300gr</th><th>400gr</th><th>Sil</th></tr></thead>
+                <tbody id="mgmt-product-list"></tbody>
+            </table>
+        </div>
+        <button class="btn btn-secondary" onclick="closeModal('modal-settings')" style="margin-top:10px;">Kapat</button>
+    </div>
+</div>
+
+<div id="modal-reports" class="modal-overlay">
+    <div class="modal-box" style="width: 800px;">
+        <h3>📊 Raporlar</h3>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div><h4>Kategori Dağılımı</h4><canvas id="chart-categories"></canvas></div>
+            <div><h4>Son 7 Gün</h4><canvas id="chart-weekly"></canvas></div>
+        </div>
+        <button class="btn btn-secondary" onclick="closeModal('modal-reports')" style="margin-top:10px;">Kapat</button>
+    </div>
+</div>
+
+<div id="receipt-area"></div>
+
+<script>
+    const db = new Dexie("SimplePOS_Ultimate_Gold_v4");
+    db.version(1).stores({
+        customers: 'phone, name, totalOrders',
+        products: '++id, name, price, price200, price300, price400, category',
+        orders: '++id, customerPhone, timestamp, status, total, paymentMethod',
+        dailyReports: 'date, totalRevenue'
+    });
+
+    let cart = [];
+    let allProducts = [];
+    let currentCustomer = null;
+    let activeCategory = 'HEPSİ';
+    
+    // Modal Durumu
+    let selectedProduct = null;
+    let selectedPortion = 100;
+    let selectedOptions = [];
+    let selectedQty = 1;
+
+    // Seed Data
+    db.on("populate", () => {
+        db.products.bulkAdd([
+            { name: "Tavuklu Tabak Teriyaki", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Barbekü", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Soya", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Köri", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Acılı", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Klasik", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Tatlı Ekşi", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Mexican", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Ballı Hardal", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Sweet Chili", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Teriyaki(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Barbekü(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Soya(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Köri(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Klasik(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Tatlı Ekşi(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Mexican(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Ballı Hardal(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Sweet Chili(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Teriyaki(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Barbekü(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Soya(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Köri(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Klasik(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Tatlı Ekşi(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Mexican(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Ballı Hardal(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Sweet Chili(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Teriyaki(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Barbekü(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Soya(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Köri(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Klasik(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Tatlı Ekşi(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Mexican(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Ballı Hardal(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Sweet Chili(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Burger", price: 200, category: "Burger" },
+            { name: "Tavuklu Cheddar Burger", price: 220, category: "Burger" },
+            { name: "Tavuklu Trüflü Mayonezli Burger", price: 220, category: "Burger" },
+            { name: "Kutu Kola", price: 60, category: "İçecek" },
+            { name: "Şişe Kola", price: 40, category: "İçecek" },
+            { name: "Kutu Fanta", price: 60, category: "İçecek" },
+            { name: "Şişe Fanta", price: 40, category: "İçecek" },
+            { name: "Kutu Sprite", price: 60, category: "İçecek" },
+            { name: "Kutu Fuse Tea", price: 60, category: "İçecek" },
+            { name: "Küçük Eker Ayran 170ml", price: 20, category: "İçecek" },
+            { name: "Tombul Eker Ayran 293ml", price: 45, category: "İçecek" },
+            { name: "Maden Suyu", price: 15, category: "İçecek" },
+            { name: "Su", price: 20, category: "İçecek" },
+            { name: "Çıtır Tavuklu Tabağı", price: 150, category: "Yan" },
+            { name: "Patates Kızartması", price: 75, category: "Yan" }
+        ]);
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadProducts();
+        loadActiveOrders();
+        togglePriceInputs();
+    });
+
+    // --- MENÜ ---
+    async function loadProducts() {
+        allProducts = await db.products.toArray();
+        renderCategories();
+        renderProducts(activeCategory);
+    }
+
+    function renderCategories() {
+        const categories = ['HEPSİ', ...new Set(allProducts.map(p => p.category))];
+        document.getElementById("category-filters").innerHTML = categories.map(cat => `
+            <div class="cat-btn ${cat === activeCategory ? 'active' : ''}" onclick="filterCat('${cat}')">${cat}</div>
+        `).join('');
+    }
+
+    function filterCat(cat) { activeCategory = cat; renderCategories(); renderProducts(cat); }
+
+    function renderProducts(cat) {
+        const list = cat === 'HEPSİ' ? allProducts : allProducts.filter(p => p.category === cat);
+        document.getElementById("product-list").innerHTML = list.map(p => `
+            <div class="product-card" onclick="openOptionModal(${p.id})">
+                <div><span class="product-name">${p.name}</span><br><span class="product-tag">${p.category}</span></div>
+                <span class="product-price">${p.price} ₺</span>
+            </div>
+        `).join('');
+    }
+
+    // --- AKILLI MODAL (Adet Dahil) ---
+    function openOptionModal(id) {
+        selectedProduct = allProducts.find(p => p.id === id);
+        selectedPortion = 200;
+        selectedOptions = [];
+        selectedQty = 1; // Her açılışta 1 yap
+        const cat = selectedProduct.category;
+        
+        document.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected', 'excluded'));
+        document.getElementById("opt-product-name").innerText = selectedProduct.name;
+        document.getElementById("modal-qty").innerText = "1";
+
+        const portionWrapper = document.getElementById("wrapper-portions");
+        const optionsWrapper = document.getElementById("wrapper-options");
+        
+        // Porsiyon
+        if(cat === 'Tabak') {
+            portionWrapper.style.display = 'block';
+            const p100 = selectedProduct.price;
+            const p200 = selectedProduct.price200 || (p100*2);
+            const p300 = selectedProduct.price300 || (p100*3);
+            const p400 = selectedProduct.price400 || (p100*4);
+            document.getElementById("portion-container").innerHTML = `
+                <div class="portion-btn" onclick="selectPortion(this, 200)">200gr <small>${p200}₺</small></div>
+                <div class="portion-btn" onclick="selectPortion(this, 300)">300gr <small>${p300}₺</small></div>
+                <div class="portion-btn" onclick="selectPortion(this, 400)">400gr <small>${p400}₺</small></div>
+            `;
+        } else {
+            portionWrapper.style.display = 'none';
+        }
+
+        // Seçenekler
+        if(cat === 'İçecek' || cat === 'Yan ürünler') optionsWrapper.style.display = 'none';
+        else optionsWrapper.style.display = 'block';
+
+        updateOptionPrice();
+        document.getElementById("modal-options").style.display = "flex";
+    }
+
+    function updateModalQty(change) {
+        selectedQty += change;
+        if(selectedQty < 1) selectedQty = 1;
+        document.getElementById("modal-qty").innerText = selectedQty;
+        updateOptionPrice();
+    }
+
+    function selectPortion(btn, gram) {
+        selectedPortion = gram;
+        document.querySelectorAll('.portion-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateOptionPrice();
+    }
+
+    function toggleOption(btn, optName) {
+        if(selectedOptions.includes(optName)) {
+            selectedOptions = selectedOptions.filter(o => o !== optName);
+            btn.classList.remove('selected', 'excluded');
+        } else {
+            selectedOptions.push(optName);
+            if(optName.includes('Bol')) btn.classList.add('selected'); else btn.classList.add('excluded');
+        }
+    }
+
+    function updateOptionPrice() {
+        let unitPrice = selectedProduct.price;
+        if(selectedProduct.category === 'Tabak') {
+            if(selectedPortion === 200) unitPrice = selectedProduct.price200 || (selectedProduct.price * 2);
+            else if(selectedPortion === 300) unitPrice = selectedProduct.price300 || (selectedProduct.price * 3);
+            else if(selectedPortion === 400) unitPrice = selectedProduct.price400 || (selectedProduct.price * 4);
+        }
+        
+        const total = unitPrice * selectedQty;
+        document.getElementById("opt-price").innerText = total.toFixed(2);
+    }
+
+    function confirmAddToCart() {
+        const priceText = document.getElementById("opt-price").innerText;
+        const finalPrice = parseFloat(priceText); // Bu toplam fiyattır (Birim x Adet)
+        
+        cart.push({
+            id: Date.now(),
+            productId: selectedProduct.id,
+            name: selectedProduct.name,
+            portion: selectedProduct.category === 'Tabak' ? selectedPortion : null,
+            options: [...selectedOptions],
+            price: finalPrice,
+            qty: selectedQty, // Adeti kaydet
+            category: selectedProduct.category
+        });
+        
+        renderCart();
+        closeModal('modal-options');
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // --- SEPET ---
+    function renderCart() {
+        const container = document.getElementById("cart-list");
+        let total = 0;
+        if (cart.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 30px; color: #aaa;">Sepet Boş</div>';
+            document.getElementById("cart-total").innerText = "0.00 ₺";
+            return;
+        }
+        container.innerHTML = cart.map((item, index) => {
+            total += item.price;
+            const portionText = item.portion ? `(${item.portion}gr)` : '';
+            // Adet 1'den büyükse 3x şeklinde göster
+            const qtyLabel = item.qty > 1 ? `<b style="color:var(--primary-color)">${item.qty}x</b> ` : '';
+            return `
+                <div class="cart-item">
+                    <div class="cart-item-header">
+                        <span>${qtyLabel}${item.name} ${portionText}</span>
+                        <span>${item.price.toFixed(2)} ₺</span>
+                    </div>
+                    ${item.options.length > 0 ? `<div class="cart-item-details">${item.options.join(', ')}</div>` : ''}
+                    <div style="text-align:right; margin-top:5px;"><button class="btn btn-danger btn-sm" onclick="removeFromCart(${index})">Sil</button></div>
+                </div>
+            `;
+        }).join('');
+        document.getElementById("cart-total").innerText = total.toFixed(2) + " ₺";
+    }
+
+    function removeFromCart(index) { cart.splice(index, 1); renderCart(); }
+
+    // --- SİPARİŞ ---
+    let searchTimeout;
+    function searchCustomer(phone) {
+        clearTimeout(searchTimeout);
+        const div = document.getElementById("cust-details");
+        if(phone.length < 3) { div.style.display="none"; currentCustomer=null; return; }
+        searchTimeout = setTimeout(async () => {
+            currentCustomer = await db.customers.get(phone);
+            div.style.display = "block";
+            if(currentCustomer) {
+                document.getElementById("cust-name").value = currentCustomer.name;
+                document.getElementById("cust-address").value = currentCustomer.lastAddress || "";
+                document.getElementById("cust-note").value = currentCustomer.note || "";
+                document.getElementById("cust-stats").innerText = `Kayıtlı: ${currentCustomer.totalOrders} Sipariş`;
+            } else {
+                document.getElementById("cust-name").value = "";
+                document.getElementById("cust-address").value = "";
+                document.getElementById("cust-note").value = "";
+                document.getElementById("cust-stats").innerText = "Yeni Müşteri";
+            }
+        }, 300);
+    }
+
+    async function completeOrder() {
+        if(cart.length === 0) return alert("Sepet boş!");
+        const phone = document.getElementById("cust-phone").value;
+        const name = document.getElementById("cust-name").value;
+        const address = document.getElementById("cust-address").value;
+        const note = document.getElementById("order-note").value;
+        const custNote = document.getElementById("cust-note").value;
+        const type = document.getElementById("order-type").value;
+        const pay = document.getElementById("payment-type").value;
+        const total = parseFloat(document.getElementById("cart-total").innerText.replace(' ₺',''));
+
+        if(type === 'Paket' && !phone) return alert("Paket için telefon şart!");
+
+        if(phone) {
+            await db.customers.put({ phone, name: name||'Misafir', lastAddress: address, note: custNote, totalOrders: (currentCustomer?.totalOrders || 0) + 1 });
+        }
+
+        const orderId = await db.orders.add({
+            customerPhone: phone, customerName: name, items: cart, total, paymentMethod: pay, orderType: type,
+            status: 'active', timestamp: new Date(), orderNote: note
+        });
+
+        printReceipt(orderId, {name, phone, address, note, custNote}, cart, total, type, pay);
+        cart = []; renderCart(); document.getElementById("order-note").value = "";
+        document.getElementById("cust-phone").value = ""; document.getElementById("cust-details").style.display = "none";
+        loadActiveOrders();
+    }
+
+    // --- AYARLAR ---
+    function openSettings() { renderMgmtTable(); togglePriceInputs(); document.getElementById("modal-settings").style.display = "flex"; }
+    function togglePriceInputs() {
+        const cat = document.getElementById("new-prod-cat").value;
+        document.getElementById("extra-prices").style.display = (cat === 'Tabak') ? 'grid' : 'none';
+    }
+    function renderMgmtTable() {
+        document.getElementById("mgmt-product-list").innerHTML = allProducts.map(p => `
+            <tr>
+                <td>${p.name}</td><td>${p.category}</td><td>${p.price}₺</td>
+                <td>${p.price200 ? p.price200+'₺' : '-'}</td><td>${p.price300 ? p.price300+'₺' : '-'}</td><td>${p.price400 ? p.price400+'₺' : '-'}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteProd(${p.id})">Sil</button></td>
+            </tr>
+        `).join('');
+    }
+    async function addNewProduct() {
+        const name = document.getElementById("new-prod-name").value;
+        const cat = document.getElementById("new-prod-cat").value;
+        const price = parseFloat(document.getElementById("new-prod-price").value);
+        let p200=null, p300=null, p400=null;
+        if(cat === 'Tabak') {
+            p200 = parseFloat(document.getElementById("new-price-200").value);
+            p300 = parseFloat(document.getElementById("new-price-300").value);
+            p400 = parseFloat(document.getElementById("new-price-400").value);
+        }
+        if(!name || !price) return;
+        await db.products.add({ name, category: cat, price, price200: p200, price300: p300, price400: p400 });
+        loadProducts(); renderMgmtTable(); document.getElementById("new-prod-name").value = "";
+    }
+    async function deleteProd(id) { if(confirm("Sil?")) { await db.products.delete(id); loadProducts(); renderMgmtTable(); } }
+
+    // --- FİŞ ---
+    function printReceipt(id, cust, items, total, type, pay) {
+        const d = new Date().toLocaleString('tr-TR');
+        const html = `
+            <div class="r-header"><div class="r-logo">TAVUKLU</div><div class="r-sub">Vıraca Mah. Benli Ahmet Sk. No:3/A Mustafakemalpaşa/BURSA
+(Güvenal ve Makbul Arası)</div><div class="r-sub">Tel: +90 531 370 95 74</div></div>
+            <div class="r-separator"></div>
+            <div class="r-info-row"><span>Fiş: #${id}</span><span>${d}</span></div>
+            <div class="r-order-type">${type.toUpperCase()}</div>
+            <div class="r-customer-box">
+                <div><strong>${cust.name || 'Misafir'}</strong></div>
+                ${cust.phone ? `<div>Tel: ${cust.phone}</div>` : ''}
+                ${cust.address ? `<div style="margin-top:2px;">Adres: ${cust.address}</div>` : ''}
+                ${cust.custNote ? `<div class="r-separator"></div><div><strong>Kalıcı Not:</strong> ${cust.custNote}</div>` : ''}
+                ${cust.note ? `<div class="r-separator"></div><div><strong>Sipariş Notu:</strong> ${cust.note}</div>` : ''}
+            </div>
+            <div class="r-separator"></div>
+            <table class="r-table">
+                <thead><tr><th>ADET</th><th>ÜRÜN</th><th>TUTAR</th></tr></thead>
+                <tbody>
+                    ${items.map(i => `
+                        <tr>
+                            <td class="r-qty">${i.qty}</td>
+                            <td>
+                                <div>${i.name}</div>
+                                <div style="font-size:8pt; margin-left:5px;">
+                                    ${i.portion ? i.portion + 'gr' : ''} 
+                                    ${i.options.length ? i.options.join(', ') : ''}
+                                </div>
+                            </td>
+                            <td class="r-price">${i.price.toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <div class="r-separator"></div>
+            <div class="r-total-section">
+                <div class="r-total-line">TOPLAM: ${total.toFixed(2)} ₺</div>
+                <div class="r-payment">Ödeme: ${pay}</div>
+            </div>
+            <div class="r-footer"><div style="font-weight:bold; font-size:11pt;">*** AFİYET OLSUN ***</div></div>
+        `;
+        document.getElementById("receipt-area").innerHTML = html;
+        window.print();
+    }
+
+    // --- Z RAPORU ---
+    async function loadActiveOrders() {
+        const today=new Date(); today.setHours(0,0,0,0);
+        const orders=await db.orders.where('timestamp').above(today).reverse().toArray();
+        document.getElementById("active-orders-body").innerHTML = orders.map(o => `
+            <tr style="${o.status==='cancelled'?'opacity:0.5':''}">
+                <td>${new Date(o.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
+                <td>${o.customerName||'-'}</td>
+                <td>${o.total} ₺</td>
+                <td>${o.status==='active'?'✅':'❌'}</td>
+                <td>${o.status==='active'?`<button class="btn-danger btn-sm" onclick="cancelOrder(${o.id})">X</button>`:''}</td>
+            </tr>`).join('');
+    }
+    async function cancelOrder(id) { if(confirm("İptal?")) { await db.orders.update(id,{status:'cancelled'}); loadActiveOrders(); }}
+    
+    async function closeDay() {
+        if(!confirm("GÜN KAPATILIYOR!")) return;
+        const today=new Date(); today.setHours(0,0,0,0);
+        const orders=await db.orders.where('timestamp').above(today).toArray();
+        let total=0, cash=0, credit=0, rows="";
+        orders.forEach(o=>{
+            if(o.status==='active'){ total+=o.total; if(o.paymentMethod==='Nakit')cash+=o.total; else credit+=o.total;}
+            rows+=`<tr><td>${new Date(o.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td><td>#${o.id}</td><td>${o.orderType}</td><td>${o.total}</td></tr>`;
+        });
+        const html = `
+            <div class="r-header"><div class="r-logo">GÜN SONU (Z)</div><div>${new Date().toLocaleDateString()}</div></div>
+            <div class="r-separator"></div>
+            <table class="r-table"><tr><th>Saat</th><th>No</th><th>Tip</th><th>Tutar</th></tr>${rows}</table>
+            <div class="r-separator"></div>
+            <div style="font-size:10pt;">
+                <div class="r-info-row"><span>İşlem:</span><span>${orders.length}</span></div>
+                <div class="r-info-row"><span>Nakit:</span><span>${cash.toFixed(2)}</span></div>
+                <div class="r-info-row"><span>K.Kartı:</span><span>${credit.toFixed(2)}</span></div>
+                <div class="r-total-line" style="text-align:right; margin-top:5px;">CİRO: ${total.toFixed(2)} TL</div>
+            </div>
+            <div class="r-footer">Onaylayan: ____________</div>
+        `;
+        document.getElementById("receipt-area").innerHTML=html; window.print();
+        await db.dailyReports.put({date: new Date().toISOString().split('T')[0], totalRevenue: total});
+    }
+    
+    async function openReports() {
+        const today = new Date(); today.setDate(today.getDate() - 7);
+        const orders = await db.orders.where('timestamp').above(today).toArray();
+        const catSales = {}; const daySales = {};
+        orders.forEach(o => {
+            if(o.status==='cancelled') return;
+            daySales[new Date(o.timestamp).toLocaleDateString('tr-TR')] = (daySales[new Date(o.timestamp).toLocaleDateString('tr-TR')] || 0) + o.total;
+            o.items.forEach(i => {
+                const prod = allProducts.find(p => p.id === i.productId);
+                const cat = prod ? prod.category : 'Diğer';
+                catSales[cat] = (catSales[cat] || 0) + i.price;
+            });
+        });
+        document.getElementById("modal-reports").style.display="flex";
+        if(window.charts) window.charts.forEach(c=>c.destroy());
+        window.charts = [
+            new Chart(document.getElementById("chart-categories"), {type:'pie', data:{labels:Object.keys(catSales), datasets:[{data:Object.values(catSales), backgroundColor:['#ff6f00','#2e7d32','#1565c0','#c62828','#fdd835']}]}}),
+            new Chart(document.getElementById("chart-weekly"), {type:'bar', data:{labels:Object.keys(daySales), datasets:[{label:'Ciro', data:Object.values(daySales), backgroundColor:'#ff6f00'}]}})
+        ];
+    }
+    
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+</script>
+</body>
+</html>
