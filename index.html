@@ -111,15 +111,41 @@
         .portion-btn.active small { color: #ffe0b2; }
 
         /* PRINT */
-        #receipt-area { display: none; }
         @media print {
-            @page { size: A6; margin: 0; }
-            body * { visibility: hidden; }
-            #receipt-area, #receipt-area * { visibility: visible; }
-            #receipt-area {
-                position: absolute; left: 0; top: 0; width: 100%; padding: 5mm;
-                box-sizing: border-box; font-family: 'Courier New', monospace; font-size: 10pt; color: black; display: block;
-            }
+    /* 1. Kağıt Ayarları */
+    @page { 
+        size: A6; 
+        margin: 0; 
+    }
+
+    /* 2. Ana Uygulamayı ve Modalları TAMAMEN Gizle (Yer kaplamasınlar) */
+    body > .main-wrapper, 
+    body > .modal-overlay { 
+        display: none !important; 
+    }
+
+    /* 3. HTML ve Body Yüksekliğini Sıfırla (Boş sayfa engelleme) */
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    /* 4. Sadece Fiş Alanını Göster ve Konumlandır */
+    #receipt-area {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 5mm; /* Kenar boşluğu */
+        box-sizing: border-box;
+        font-family: 'Courier New', monospace;
+        font-size: 10pt;
+        color: black;
+    }
             .r-header { text-align: center; margin-bottom: 10px; }
             .r-logo { font-size: 16pt; font-weight: bold; text-transform: uppercase; }
             .r-sub { font-size: 9pt; }
