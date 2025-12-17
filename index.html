@@ -249,6 +249,10 @@
                 <div class="opt-btn" onclick="toggleOption(this, 'Turşusuz')">🥒 Turşusuz</div>
                 <div class="opt-btn" onclick="toggleOption(this, 'Domatessiz')">🍅 Domatessiz</div>
                 <div class="opt-btn" onclick="toggleOption(this, 'Mayonezsiz')">⚪ Mayonezsiz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Marulsuz')">🥬 Marulsuz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Bibersiz')">🌶 Bibersiz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Havuçsuz')">🥕 Havuçsuz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Mısırsız')">🌽 Mısırsız</div>
             </div>
         </div>
 
@@ -380,6 +384,7 @@
     // Seed Data
     db.on("populate", () => {
         db.products.bulkAdd([
+            { name: "Tavuklu Tabak Dağ Kekikli ve Kremalı", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
             { name: "Tavuklu Tabak Teriyaki", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
             { name: "Tavuklu Tabak Barbekü", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
             { name: "Tavuklu Tabak Soya", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
@@ -390,6 +395,7 @@
             { name: "Tavuklu Tabak Mexican", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
             { name: "Tavuklu Tabak Ballı Hardal", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
             { name: "Tavuklu Tabak Sweet Chili", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Dağ Kekikli ve Kremalı(Tam)", price: 200, category: "Tam Ekmek" },
             { name: "Tavuklu Teriyaki(Tam)", price: 200, category: "Tam Ekmek" },
             { name: "Tavuklu Barbekü(Tam)", price: 200, category: "Tam Ekmek" },
             { name: "Tavuklu Soya(Tam)", price: 200, category: "Tam Ekmek" },
@@ -400,6 +406,7 @@
             { name: "Tavuklu Mexican(Tam)", price: 200, category: "Tam Ekmek" },
             { name: "Tavuklu Ballı Hardal(Tam)", price: 200, category: "Tam Ekmek" },
             { name: "Tavuklu Sweet Chili(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Dağ Kekikli ve Kremalı(Yarım)", price: 120, category: "Yarım Ekmek" },
             { name: "Tavuklu Teriyaki(Yarım)", price: 120, category: "Yarım Ekmek" },
             { name: "Tavuklu Barbekü(Yarım)", price: 120, category: "Yarım Ekmek" },
             { name: "Tavuklu Soya(Yarım)", price: 120, category: "Yarım Ekmek" },
@@ -410,6 +417,7 @@
             { name: "Tavuklu Mexican(Yarım)", price: 120, category: "Yarım Ekmek" },
             { name: "Tavuklu Ballı Hardal(Yarım)", price: 120, category: "Yarım Ekmek" },
             { name: "Tavuklu Sweet Chili(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Dağ Kekikli ve Kremalı(Tombik)", price: 120, category: "Tombik Ekmek" },
             { name: "Tavuklu Teriyaki(Tombik)", price: 120, category: "Tombik Ekmek" },
             { name: "Tavuklu Barbekü(Tombik)", price: 120, category: "Tombik Ekmek" },
             { name: "Tavuklu Soya(Tombik)", price: 120, category: "Tombik Ekmek" },
@@ -842,7 +850,7 @@
         });
 
         const html = `
-            <div class="r-header"><div class="r-logo">GÜN SONU/div><div>${new Date().toLocaleDateString('tr-TR')}</div></div>
+            <div class="r-header"><div class="r-logo">GÜN SONU</div><div>${new Date().toLocaleDateString('tr-TR')}</div></div>
             <div class="r-separator"></div>
             <table class="r-table" style="width:100%; font-size:9pt;">
                 <thead><tr><th style="text-align:left;">Saat</th><th style="text-align:left;">Tip</th><th style="text-align:right;">Tutar</th><th style="text-align:center;">Öd.</th></tr></thead>
