@@ -1,0 +1,82 @@
+ <div id="wrapper-options" class="section-wrapper">
+            <span class="section-label">Seçenekler:</span>
+            <div class="option-grid">
+                <div class="opt-btn" onclick="toggleOption(this, 'Patates Olmasın')">🍟 Patates Olmasın</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Makarna Olmasın')">🍝 Makarna Olmasın</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Salata Olmasın')">🥗 Salata Olmasın</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Makarna Bol')">🍝 Makarna Bol</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Soğansız')">🧅 Soğansız</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Turşusuz')">🥒 Turşusuz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Domatessiz')">🍅 Domatessiz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Mayonezsiz')">⚪ Mayonezsiz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Marulsuz')">🥬 Marulsuz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Bibersiz')">🌶 Bibersiz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Havuçsuz')">🥕 Havuçsuz</div>
+                <div class="opt-btn" onclick="toggleOption(this, 'Mısırsız')">🌽 Mısırsız</div>
+            </div>
+        </div>
+
+    // Seed Data
+    db.on("populate", () => {
+        db.products.bulkAdd([
+            { name: "Tavuklu Tabak Dağ Kekikli ve Kremalı", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Teriyaki", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Barbekü", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Soya", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Köri", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Acılı", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Klasik", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Tatlı Ekşi", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Mexican", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Ballı Hardal", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Tabak Sweet Chili", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
+            { name: "Tavuklu Dağ Kekikli ve Kremalı(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Teriyaki(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Barbekü(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Soya(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Köri(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Klasik(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Acılı(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Tatlı Ekşi(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Mexican(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Ballı Hardal(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Sweet Chili(Tam)", price: 200, category: "Tam Ekmek" },
+            { name: "Tavuklu Dağ Kekikli ve Kremalı(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Teriyaki(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Barbekü(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Soya(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Köri(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Klasik(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Acılı(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Tatlı Ekşi(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Mexican(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Ballı Hardal(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Sweet Chili(Yarım)", price: 120, category: "Yarım Ekmek" },
+            { name: "Tavuklu Dağ Kekikli ve Kremalı(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Teriyaki(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Barbekü(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Soya(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Köri(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Klasik(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Acılı(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Tatlı Ekşi(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Mexican(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Ballı Hardal(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Sweet Chili(Tombik)", price: 120, category: "Tombik Ekmek" },
+            { name: "Tavuklu Burger", price: 200, category: "Burger" },
+            { name: "Tavuklu Cheddar Burger", price: 220, category: "Burger" },
+            { name: "Tavuklu Trüflü Mayonezli Burger", price: 220, category: "Burger" },
+            { name: "Kutu Kola", price: 60, category: "İçecek" },
+            { name: "Şişe Kola", price: 40, category: "İçecek" },
+            { name: "Kutu Fanta", price: 60, category: "İçecek" },
+            { name: "Şişe Fanta", price: 40, category: "İçecek" },
+            { name: "Kutu Sprite", price: 60, category: "İçecek" },
+            { name: "Kutu Fuse Tea", price: 60, category: "İçecek" },
+            { name: "Küçük Eker Ayran 170ml", price: 20, category: "İçecek" },
+            { name: "Tombul Eker Ayran 293ml", price: 45, category: "İçecek" },
+            { name: "Maden Suyu", price: 15, category: "İçecek" },
+            { name: "Su", price: 20, category: "İçecek" },
+            { name: "Çıtır Tavuklu Tabağı", price: 150, category: "Yan" },
+            { name: "Patates Kızartması", price: 75, category: "Yan" }
+        ]);
+    });

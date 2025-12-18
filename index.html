@@ -207,7 +207,7 @@
                 <span style="font-size:1.1rem; color:#666;">Toplam:</span>
                 <span id="cart-total" style="font-size: 1.8rem; color: var(--primary-color); font-weight:800;">0.00 ₺</span>
             </div>
-            <button class="btn btn-primary" onclick="completeOrder()">YAZDIR (2 KOPYA) & KAYDET</button>
+            <button class="btn btn-primary" onclick="completeOrder()">YAZDIR & KAYDET</button>
         </div>
     </div>
 
@@ -812,7 +812,7 @@
     async function printOldOrder(id) {
         const o = await db.orders.get(id);
         const cust = { name: o.customerName, phone: o.customerPhone, address: '', note: o.orderNote }; 
-        printReceipt(o.id, cust, o.items, o.total, o.discount||0, o.extra||0, o.orderType, o.paymentMethod, true);
+        printReceipt(o.id, cust, o.items, o.total, o.discount||0, o.extra||0, o.orderType, o.paymentMethod, false);
     }
 
     async function loadActiveOrders() {
