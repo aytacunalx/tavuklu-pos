@@ -667,7 +667,7 @@
             status: 'active', timestamp: new Date(), orderNote: note
         });
 
-        printReceipt(orderId, {name, phone, address, note, custNote}, cart, total, discount, extra, type, pay, true);
+        printReceipt(orderId, {name, phone, address, note, custNote}, cart, total, discount, extra, type, pay, false);
         
         cart = []; 
         document.getElementById("order-discount").value = "";
