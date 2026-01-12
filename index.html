@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tavuklu POS</title>
+    <title>Tavuklu POS-QA</title>
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -112,6 +112,7 @@
         .section-label { font-weight: bold; margin-bottom: 5px; display: block; }
         
         .option-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .portion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
         
         .opt-btn { padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; text-align: center; }
@@ -238,6 +239,13 @@
             <input type="number" id="manual-price" placeholder="Özel Fiyat Gir (Örn: 250)" style="margin-top:10px; border-color:var(--primary-color);" onkeyup="updateOptionPrice()">
         </div>
 
+        <div id="wrapper-menu-selection" class="section-wrapper" style="display:none;">
+            <span class="section-label">Sos/Lezzet Seçimi (Zorunlu):</span>
+            <div class="menu-grid" id="menu-sauce-grid"></div>
+            <span class="section-label" style="margin-top:10px;">İçecek Seçimi (Zorunlu):</span>
+            <div class="menu-grid" id="menu-drink-grid"></div>
+        </div>
+
         <div id="wrapper-options" class="section-wrapper">
             <span class="section-label">Seçenekler:</span>
             <div class="option-grid">
@@ -300,6 +308,7 @@
                     <option value="Burger">Burger</option>
                     <option value="İçecek">İçecek</option>
                     <option value="Yan ürünler">Yan ürünler</option>
+                    <option value="Avantajlı Menüler">Avantajlı Menüler</option>
                 </select>
                 <input type="number" id="new-prod-price" placeholder="100gr / Tek Fiyat" style="margin:0;">
             </div>
@@ -308,12 +317,14 @@
                 <input type="number" id="new-price-300" placeholder="300gr Fiyatı">
                 <input type="number" id="new-price-400" placeholder="400gr Fiyatı">
             </div>
-            <button class="btn btn-success" onclick="addNewProduct()">+ Yeni Ürün Ekle</button>
+            <button class="btn btn-success" id="btn-save-prod" onclick="saveProduct()">+ Yeni Ürün Ekle</button>
         </div>
         
+        <input type="text" id="mgmt-search" placeholder="🔍 Ürün Ara..." onkeyup="renderMgmtTable()" style="margin-bottom:10px; border:1px solid #ccc;">
+
         <div style="max-height:200px; overflow-y:auto;">
             <table class="orders-table" id="mgmt-table">
-                <thead><tr><th>Ürün</th><th>Kat.</th><th>Fiyat</th><th>Sil</th></tr></thead>
+                <thead><tr><th>Ürün</th><th>Kat.</th><th>Fiyat</th><th>İşlem</th></tr></thead>
                 <tbody id="mgmt-product-list"></tbody>
             </table>
         </div>
@@ -350,13 +361,49 @@
 </div>
 
 <div id="modal-reports" class="modal-overlay">
-    <div class="modal-box" style="width: 800px;">
-        <h3>📊 Raporlar</h3>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-            <div><h4>Kategori Dağılımı</h4><canvas id="chart-categories"></canvas></div>
-            <div><h4>Son 7 Gün</h4><canvas id="chart-weekly"></canvas></div>
+    <div class="modal-box" style="width: 900px; max-height:90vh;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3>📊 Detaylı Raporlar (Son 30 Gün)</h3>
+            <button class="icon-btn" onclick="closeModal('modal-reports')">✕</button>
         </div>
-        <button class="btn btn-secondary" onclick="closeModal('modal-reports')" style="margin-top:10px;">Kapat</button>
+        
+        <!-- Özet Kartlar -->
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:20px;">
+            <div style="background:#e3f2fd; padding:15px; border-radius:8px; text-align:center;">
+                <div style="font-size:0.9rem; color:#555;">Toplam Ciro</div>
+                <div style="font-size:1.4rem; font-weight:bold; color:#1565c0;" id="rep-total-rev">0 ₺</div>
+            </div>
+            <div style="background:#e8f5e9; padding:15px; border-radius:8px; text-align:center;">
+                <div style="font-size:0.9rem; color:#555;">Toplam Sipariş</div>
+                <div style="font-size:1.4rem; font-weight:bold; color:#2e7d32;" id="rep-total-orders">0</div>
+            </div>
+            <div style="background:#fff3e0; padding:15px; border-radius:8px; text-align:center;">
+                <div style="font-size:0.9rem; color:#555;">Ortalama Sepet</div>
+                <div style="font-size:1.4rem; font-weight:bold; color:#ef6c00;" id="rep-avg-cart">0 ₺</div>
+            </div>
+            <div style="background:#f3e5f5; padding:15px; border-radius:8px; text-align:center;">
+                <div style="font-size:0.9rem; color:#555;">En Çok Satan</div>
+                <div style="font-size:1rem; font-weight:bold; color:#7b1fa2;" id="rep-top-prod">-</div>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px;">
+            <div><h5 style="text-align:center;">Günlük Ciro</h5><canvas id="chart-weekly"></canvas></div>
+            <div><h5 style="text-align:center;">Kategori Dağılımı</h5><canvas id="chart-categories"></canvas></div>
+        </div>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px;">
+            <div><h5 style="text-align:center;">Ödeme Yöntemleri</h5><canvas id="chart-payment"></canvas></div>
+            <div><h5 style="text-align:center;">Sipariş Tipleri</h5><canvas id="chart-types"></canvas></div>
+        </div>
+
+        <h5 style="border-bottom:1px solid #eee; padding-bottom:5px;">🏆 En Çok Satan Ürünler</h5>
+        <div style="max-height:200px; overflow-y:auto;">
+            <table class="orders-table">
+                <thead><tr><th>Ürün Adı</th><th>Adet</th><th>Ciro</th></tr></thead>
+                <tbody id="rep-prod-list"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -380,73 +427,107 @@
     let selectedPortion = 100;
     let selectedOptions = [];
     let selectedQty = 1;
+    let selectedMenuSauce = null;
+    let selectedMenuDrink = null;
+    let editingProductId = null;
 
-    // Seed Data
+    // GÜNCEL ÜRÜN LİSTESİ (KOD TARAFINDAKİ MASTER VERİ)
+    const masterProducts = [
+        { name: "Tavuklu Tabak Dağ Kekikli ve Kremalı", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Teriyaki", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Barbekü", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Soya", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Köri", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Acılı", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Klasik", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Tatlı Ekşi", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Mexican", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Ballı Hardal", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Sweet Chili", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Dağ Kekikli ve Kremalı(Tam)", price: 200, category: "Tam Ekmek" },
+        { name: "Tavuklu Teriyaki(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Barbekü(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Soya(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Köri(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Klasik(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Acılı(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Tatlı Ekşi(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Mexican(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Ballı Hardal(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Sweet Chili(Tam)", price: 230, category: "Tam Ekmek" },
+        { name: "Tavuklu Dağ Kekikli ve Kremalı(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Teriyaki(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Barbekü(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Soya(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Köri(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Klasik(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Acılı(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Tatlı Ekşi(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Mexican(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Ballı Hardal(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Sweet Chili(Yarım)", price: 130, category: "Yarım Ekmek" },
+        { name: "Tavuklu Dağ Kekikli ve Kremalı(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Teriyaki(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Barbekü(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Soya(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Köri(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Klasik(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Acılı(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Tatlı Ekşi(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Mexican(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Ballı Hardal(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Sweet Chili(Tombik)", price: 140, category: "Tombik Ekmek" },
+        { name: "Tavuklu Burger", price: 230, category: "Burger" },
+        { name: "Tavuklu Cheddar Burger", price: 250, category: "Burger" },
+        { name: "Tavuklu Trüflü Mayonezli Burger", price: 250, category: "Burger" },
+        { name: "Kutu Kola", price: 70, category: "İçecek" },
+        { name: "Coca-Cola Zero", price: 70, category: "İçecek" },
+        { name: "Şişe Kola", price: 50, category: "İçecek" },
+        { name: "Kutu Fanta", price: 70, category: "İçecek" },
+        { name: "Şişe Fanta", price: 50, category: "İçecek" },
+        { name: "Kutu Sprite", price: 70, category: "İçecek" },
+        { name: "Kutu Fuse Tea", price: 70, category: "İçecek" },
+        { name: "Uludağ Gazoz", price: 50, category: "İçecek" },
+        { name: "Uludağ Gazoz Portakallı", price: 50, category: "İçecek" },
+        { name: "Küçük Eker Ayran 170ml", price: 20, category: "İçecek" },
+        { name: "Tombul Eker Ayran 293ml", price: 45, category: "İçecek" },
+        { name: "Maden Suyu", price: 20, category: "İçecek" },
+        { name: "Su", price: 15, category: "İçecek" },
+        { name: "Çıtır Tavuklu Tabağı", price: 180, category: "Yan" },
+        { name: "Patates Kızartması", price: 85, category: "Yan" },
+        { name: "Avantaj Tabak Menü", price: 320, category: "Avantajlı Menüler" },
+        { name: "Avantaj Tabak Menü 2", price: 350, category: "Avantajlı Menüler" },
+        { name: "Avantaj Tombik Menü", price: 230, category: "Avantajlı Menüler" },
+        { name: "Avantaj Tombik Menü 2", price: 250, category: "Avantajlı Menüler" },
+        { name: "Avantaj Bütün Ekmek Menü", price: 320, category: "Avantajlı Menüler" },
+        { name: "Avantaj Bütün Ekmek Menü 2", price: 350, category: "Avantajlı Menüler" },
+    ];
+
+    const chickenSauces = ["Dağ Kekikli ve Kremalı", "Teriyaki", "Barbekü", "Soya", "Köri", "Acılı", "Klasik", "Tatlı Ekşi", "Mexican", "Ballı Hardal", "Sweet Chili"];
+    // Menü içeriklerini fişte göstermek için sabit içerikler
+    const menuFixedContents = ["Patates Kızartması"]; 
+
+    // Seed Data (Sadece ilk kurulumda çalışır)
     db.on("populate", () => {
-        db.products.bulkAdd([
-            { name: "Tavuklu Tabak Dağ Kekikli ve Kremalı", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Teriyaki", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Barbekü", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Soya", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Köri", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Acılı", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Klasik", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Tatlı Ekşi", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Mexican", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Ballı Hardal", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Tabak Sweet Chili", price: 220, price200: 220, price300: 300, price400: 400, category: "Tabak" },
-            { name: "Tavuklu Dağ Kekikli ve Kremalı(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Teriyaki(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Barbekü(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Soya(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Köri(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Klasik(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Acılı(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Tatlı Ekşi(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Mexican(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Ballı Hardal(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Sweet Chili(Tam)", price: 200, category: "Tam Ekmek" },
-            { name: "Tavuklu Dağ Kekikli ve Kremalı(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Teriyaki(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Barbekü(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Soya(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Köri(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Klasik(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Acılı(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Tatlı Ekşi(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Mexican(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Ballı Hardal(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Sweet Chili(Yarım)", price: 120, category: "Yarım Ekmek" },
-            { name: "Tavuklu Dağ Kekikli ve Kremalı(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Teriyaki(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Barbekü(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Soya(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Köri(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Klasik(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Acılı(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Tatlı Ekşi(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Mexican(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Ballı Hardal(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Sweet Chili(Tombik)", price: 120, category: "Tombik Ekmek" },
-            { name: "Tavuklu Burger", price: 200, category: "Burger" },
-            { name: "Tavuklu Cheddar Burger", price: 220, category: "Burger" },
-            { name: "Tavuklu Trüflü Mayonezli Burger", price: 220, category: "Burger" },
-            { name: "Kutu Kola", price: 60, category: "İçecek" },
-            { name: "Şişe Kola", price: 40, category: "İçecek" },
-            { name: "Kutu Fanta", price: 60, category: "İçecek" },
-            { name: "Şişe Fanta", price: 40, category: "İçecek" },
-            { name: "Kutu Sprite", price: 60, category: "İçecek" },
-            { name: "Kutu Fuse Tea", price: 60, category: "İçecek" },
-            { name: "Küçük Eker Ayran 170ml", price: 20, category: "İçecek" },
-            { name: "Tombul Eker Ayran 293ml", price: 45, category: "İçecek" },
-            { name: "Maden Suyu", price: 15, category: "İçecek" },
-            { name: "Su", price: 20, category: "İçecek" },
-            { name: "Çıtır Tavuklu Tabağı", price: 150, category: "Yan" },
-            { name: "Patates Kızartması", price: 75, category: "Yan" }
-        ]);
+        db.products.bulkAdd(masterProducts);
     });
 
-    document.addEventListener("DOMContentLoaded", () => {
+    // Kod tarafındaki fiyatları veritabanı ile eşle (Her açılışta çalışır)
+    async function syncPricesFromCode() {
+        for (const p of masterProducts) {
+            const existing = await db.products.where('name').equals(p.name).first();
+            if (existing) {
+                // Mevcut kaydı kodtaki verilerle güncelle (ID korunur)
+                await db.products.put({ ...p, id: existing.id });
+            } else {
+                // Yeni ürün ekle
+                await db.products.add(p);
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await syncPricesFromCode(); // Önce senkronize et
         loadProducts();
         loadActiveOrders();
         togglePriceInputs();
@@ -482,12 +563,15 @@
         selectedPortion = 200;
         selectedOptions = [];
         selectedQty = 1; 
+        selectedMenuSauce = null;
+        selectedMenuDrink = null;
         document.getElementById("manual-price").value = "";
 
         const cat = selectedProduct.category;
         
         document.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected', 'excluded'));
         document.getElementById("opt-product-name").innerText = selectedProduct.name;
+        document.getElementById("opt-product-name").style.color = (cat === 'Avantajlı Menüler') ? 'var(--primary-color)' : '#333';
         document.getElementById("modal-qty").innerText = "1";
 
         const portionWrapper = document.getElementById("wrapper-portions");
@@ -508,11 +592,55 @@
             portionWrapper.style.display = 'none';
         }
 
+        // Avantajlı Menü Seçimi
+        const menuWrapper = document.getElementById("wrapper-menu-selection");
+        if (cat === 'Avantajlı Menüler') {
+            menuWrapper.style.display = 'block';
+            portionWrapper.style.display = 'none'; // Menülerde porsiyon yok, standart
+            
+            // Sosları Listele
+            document.getElementById("menu-sauce-grid").innerHTML = chickenSauces.map(s => `
+                <div class="opt-btn" onclick="selectMenuOption('sauce', '${s}', this)">${s}</div>
+            `).join('');
+
+            // İçecekleri Listele (Menüye göre özelleştirilmiş)
+            let currentDrinks = [];
+            if (selectedProduct.name === "Avantaj Tabak Menü") currentDrinks = ["Uludağ Gazoz"];
+            else if (selectedProduct.name === "Avantaj Tabak Menü 2") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
+            else if (selectedProduct.name === "Avantaj Tombik Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
+            else if (selectedProduct.name === "Avantaj Tombik Menü 2") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
+            else if (selectedProduct.name === "Avantaj Bütün Ekmek Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
+            else if (selectedProduct.name === "Avantaj Bütün Ekmek Menü 2") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
+            else currentDrinks = ["Ayran", "Su", "Uludağ Gazoz"];
+
+            document.getElementById("menu-drink-grid").innerHTML = currentDrinks.map(d => `
+                <div class="opt-btn" onclick="selectMenuOption('drink', '${d}', this)">${d}</div>
+            `).join('');
+
+            // Tek seçenek varsa otomatik seç
+            if (currentDrinks.length === 1) {
+                selectedMenuDrink = currentDrinks[0];
+                document.getElementById("menu-drink-grid").firstElementChild.classList.add('selected');
+            }
+
+        } else {
+            menuWrapper.style.display = 'none';
+        }
+
         if(cat === 'İçecek' || cat === 'Yan ürünler') optionsWrapper.style.display = 'none';
         else optionsWrapper.style.display = 'block';
 
         updateOptionPrice();
         document.getElementById("modal-options").style.display = "flex";
+    }
+
+    function selectMenuOption(type, value, btn) {
+        const gridId = type === 'sauce' ? 'menu-sauce-grid' : 'menu-drink-grid';
+        document.getElementById(gridId).querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        
+        if(type === 'sauce') selectedMenuSauce = value;
+        if(type === 'drink') selectedMenuDrink = value;
     }
 
     function updateModalQty(change) {
@@ -557,6 +685,18 @@
     }
 
     function confirmAddToCart() {
+        // Menü Validasyonu
+        if (selectedProduct.category === 'Avantajlı Menüler') {
+            if (!selectedMenuSauce) return alert("Lütfen Sos/Lezzet seçimi yapınız!");
+            if (!selectedMenuDrink) return alert("Lütfen İçecek seçimi yapınız!");
+            
+            // Menü seçimlerini options'a ekle
+            selectedOptions.unshift(selectedMenuDrink);
+            selectedOptions.unshift(selectedMenuSauce);
+            // Sabit içerikleri de ekle (Patates vb.)
+            menuFixedContents.forEach(c => selectedOptions.push(c));
+        }
+
         const priceText = document.getElementById("opt-price").innerText;
         const finalPrice = parseFloat(priceText); 
         const manualInput = parseFloat(document.getElementById("manual-price").value);
@@ -566,7 +706,7 @@
             productId: selectedProduct.id,
             name: selectedProduct.name,
             portion: (selectedProduct.category === 'Tabak' && !manualInput) ? selectedPortion : null,
-            options: [...selectedOptions],
+            options: [...selectedOptions], // Seçenekler kopyalanır
             price: finalPrice,
             qty: selectedQty, 
             category: selectedProduct.category,
@@ -680,32 +820,92 @@
         loadActiveOrders();
     }
 
-    function openSettings() { renderMgmtTable(); togglePriceInputs(); document.getElementById("modal-settings").style.display = "flex"; }
+    function openSettings() { 
+        document.getElementById("mgmt-search").value = ""; // Aramayı sıfırla
+        renderMgmtTable(); 
+        togglePriceInputs(); 
+        document.getElementById("modal-settings").style.display = "flex"; 
+    }
     function togglePriceInputs() {
         const cat = document.getElementById("new-prod-cat").value;
         document.getElementById("extra-prices").style.display = (cat === 'Tabak') ? 'grid' : 'none';
     }
     function renderMgmtTable() {
-        document.getElementById("mgmt-product-list").innerHTML = allProducts.map(p => `
+        const term = document.getElementById("mgmt-search").value.toLowerCase();
+        const filtered = allProducts.filter(p => p.name.toLowerCase().includes(term) || p.category.toLowerCase().includes(term));
+
+        document.getElementById("mgmt-product-list").innerHTML = filtered.map(p => `
             <tr>
                 <td>${p.name}</td><td>${p.category}</td><td>${p.price}₺</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteProd(${p.id})">Sil</button></td>
+                <td>
+                    <button class="btn btn-info btn-sm" onclick="editProd(${p.id})">Düzenle</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteProd(${p.id})">Sil</button>
+                </td>
             </tr>
         `).join('');
     }
-    async function addNewProduct() {
+
+    function editProd(id) {
+        const p = allProducts.find(x => x.id === id);
+        if(!p) return;
+        editingProductId = id;
+        
+        document.getElementById("new-prod-name").value = p.name;
+        document.getElementById("new-prod-cat").value = p.category;
+        document.getElementById("new-prod-price").value = p.price;
+        togglePriceInputs();
+
+        if(p.category === 'Tabak') {
+            document.getElementById("new-price-200").value = p.price200 || "";
+            document.getElementById("new-price-300").value = p.price300 || "";
+            document.getElementById("new-price-400").value = p.price400 || "";
+        }
+
+        const btn = document.getElementById("btn-save-prod");
+        btn.innerText = "💾 Değişiklikleri Kaydet";
+        btn.classList.remove("btn-success");
+        btn.classList.add("btn-warning");
+    }
+
+    async function saveProduct() {
         const name = document.getElementById("new-prod-name").value;
         const cat = document.getElementById("new-prod-cat").value;
         const price = parseFloat(document.getElementById("new-prod-price").value);
+        
+        if(!name || isNaN(price)) return alert("Ürün adı ve fiyatı zorunludur!");
+
         let p200=null, p300=null, p400=null;
         if(cat === 'Tabak') {
-            p200 = parseFloat(document.getElementById("new-price-200").value);
-            p300 = parseFloat(document.getElementById("new-price-300").value);
-            p400 = parseFloat(document.getElementById("new-price-400").value);
+            p200 = parseFloat(document.getElementById("new-price-200").value) || null;
+            p300 = parseFloat(document.getElementById("new-price-300").value) || null;
+            p400 = parseFloat(document.getElementById("new-price-400").value) || null;
         }
-        if(!name || !price) return;
-        await db.products.add({ name, category: cat, price, price200: p200, price300: p300, price400: p400 });
-        loadProducts(); renderMgmtTable(); document.getElementById("new-prod-name").value = "";
+
+        const productData = { name, category: cat, price, price200: p200, price300: p300, price400: p400 };
+
+        if(editingProductId) {
+            await db.products.update(editingProductId, productData);
+            alert("Ürün güncellendi!");
+        } else {
+            await db.products.add(productData);
+            alert("Yeni ürün eklendi!");
+        }
+
+        // Formu Sıfırla
+        editingProductId = null;
+        document.getElementById("new-prod-name").value = "";
+        document.getElementById("new-prod-price").value = "";
+        document.getElementById("new-price-200").value = "";
+        document.getElementById("new-price-300").value = "";
+        document.getElementById("new-price-400").value = "";
+        
+        const btn = document.getElementById("btn-save-prod");
+        btn.innerText = "+ Yeni Ürün Ekle";
+        btn.classList.remove("btn-warning");
+        btn.classList.add("btn-success");
+
+        loadProducts(); 
+        renderMgmtTable();
     }
     async function deleteProd(id) { if(confirm("Sil?")) { await db.products.delete(id); loadProducts(); renderMgmtTable(); } }
     async function factoryReset() { if(confirm("Her şey silinecek?")) { await db.delete(); window.location.reload(); } }
@@ -877,23 +1077,68 @@
     }
     
     async function openReports() {
-        const today = new Date(); today.setDate(today.getDate() - 7);
-        const orders = await db.orders.where('timestamp').above(today).toArray();
-        const catSales = {}; const daySales = {};
-        orders.forEach(o => {
-            if(o.status==='cancelled') return;
-            daySales[new Date(o.timestamp).toLocaleDateString('tr-TR')] = (daySales[new Date(o.timestamp).toLocaleDateString('tr-TR')] || 0) + o.total;
+        // Son 30 gün
+        const startDate = new Date(); startDate.setDate(startDate.getDate() - 30); startDate.setHours(0,0,0,0);
+        const orders = await db.orders.where('timestamp').above(startDate).toArray();
+        
+        const validOrders = orders.filter(o => o.status !== 'cancelled');
+        
+        let totalRev = 0;
+        let totalCount = validOrders.length;
+        const catSales = {}; 
+        const daySales = {};
+        const payStats = {};
+        const typeStats = {};
+        const prodStats = {};
+
+        validOrders.forEach(o => {
+            totalRev += o.total;
+            
+            // Günlük Satış
+            const d = new Date(o.timestamp).toLocaleDateString('tr-TR');
+            daySales[d] = (daySales[d] || 0) + o.total;
+
+            // Ödeme Yöntemi
+            payStats[o.paymentMethod] = (payStats[o.paymentMethod] || 0) + 1;
+
+            // Sipariş Tipi
+            typeStats[o.orderType] = (typeStats[o.orderType] || 0) + 1;
+
+            // Ürün Bazlı
             o.items.forEach(i => {
                 const prod = allProducts.find(p => p.id === i.productId);
-                const cat = prod ? prod.category : 'Diğer';
+                const cat = prod ? prod.category : (i.category || 'Diğer');
+                
                 catSales[cat] = (catSales[cat] || 0) + i.price;
+                
+                if(!prodStats[i.name]) prodStats[i.name] = { qty: 0, rev: 0 };
+                prodStats[i.name].qty += i.qty;
+                prodStats[i.name].rev += i.price;
             });
         });
+
+        // DOM Güncelleme
+        document.getElementById("rep-total-rev").innerText = totalRev.toFixed(2) + " ₺";
+        document.getElementById("rep-total-orders").innerText = totalCount;
+        document.getElementById("rep-avg-cart").innerText = totalCount ? (totalRev / totalCount).toFixed(2) + " ₺" : "0 ₺";
+        
+        // En çok satan ürün
+        const sortedProds = Object.entries(prodStats).sort((a,b) => b[1].qty - a[1].qty);
+        document.getElementById("rep-top-prod").innerText = sortedProds.length > 0 ? sortedProds[0][0] : "-";
+
+        // Ürün Tablosu
+        document.getElementById("rep-prod-list").innerHTML = sortedProds.slice(0, 20).map(([name, stat]) => `
+            <tr><td>${name}</td><td>${stat.qty}</td><td>${stat.rev.toFixed(2)} ₺</td></tr>
+        `).join('');
+
         document.getElementById("modal-reports").style.display="flex";
+        
         if(window.charts) window.charts.forEach(c=>c.destroy());
         window.charts = [
-            new Chart(document.getElementById("chart-categories"), {type:'pie', data:{labels:Object.keys(catSales), datasets:[{data:Object.values(catSales), backgroundColor:['#ff6f00','#2e7d32','#1565c0','#c62828','#fdd835']}]}}),
-            new Chart(document.getElementById("chart-weekly"), {type:'bar', data:{labels:Object.keys(daySales), datasets:[{label:'Ciro', data:Object.values(daySales), backgroundColor:'#ff6f00'}]}})
+            new Chart(document.getElementById("chart-weekly"), {type:'line', data:{labels:Object.keys(daySales), datasets:[{label:'Ciro', data:Object.values(daySales), borderColor:'#ff6f00', tension:0.1}]}}),
+            new Chart(document.getElementById("chart-categories"), {type:'doughnut', data:{labels:Object.keys(catSales), datasets:[{data:Object.values(catSales), backgroundColor:['#ff6f00','#2e7d32','#1565c0','#c62828','#fdd835','#8e24aa','#546e7a']}]}}),
+            new Chart(document.getElementById("chart-payment"), {type:'pie', data:{labels:Object.keys(payStats), datasets:[{data:Object.values(payStats), backgroundColor:['#4caf50','#2196f3']}]}}),
+            new Chart(document.getElementById("chart-types"), {type:'pie', data:{labels:Object.keys(typeStats), datasets:[{data:Object.values(typeStats), backgroundColor:['#ff9800','#9c27b0','#795548']}]}})
         ];
     }
     
