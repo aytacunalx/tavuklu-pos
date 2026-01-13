@@ -299,7 +299,7 @@
         <h4 style="border-bottom:1px solid #ddd; padding-bottom:5px;">Ürün Ekle / Düzenle</h4>
         <div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">
             <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; margin-bottom:10px;">
-                <input type="text" id="new-prod-name" placeholder="Ürün Adı" style="margin:0;">
+                <input type="text" id="new-prod-name" placeholder="Ürün Adı" style="margin:0;" onkeyup="togglePriceInputs()">
                 <select id="new-prod-cat" onchange="togglePriceInputs()" style="margin:0;">
                     <option value="Tabak">Tabak</option>
                     <option value="Tombik Ekmek">Tombik Ekmek</option>
@@ -493,7 +493,7 @@
         { name: "Tombul Eker Ayran 293ml", price: 45, category: "İçecek" },
         { name: "Maden Suyu", price: 20, category: "İçecek" },
         { name: "Su", price: 15, category: "İçecek" },
-        { name: "Çıtır Tavuklu Tabağı", price: 180, category: "Yan" },
+        { name: "Çıtır Tavuklu Tabağı", price: 180, price200: 180, price300: 270, price400: 360, category: "Yan" },
         { name: "Patates Kızartması", price: 85, category: "Yan" },
         { name: "Avantaj Tabak Menü", price: 320, category: "Avantajlı Menüler" },
         { name: "Avantaj Tabak Menü 2", price: 350, category: "Avantajlı Menüler" },
@@ -577,7 +577,7 @@
         const portionWrapper = document.getElementById("wrapper-portions");
         const optionsWrapper = document.getElementById("wrapper-options");
         
-        if(cat === 'Tabak') {
+        if(cat === 'Tabak' || selectedProduct.price200) {
             portionWrapper.style.display = 'block';
             const p100 = selectedProduct.price;
             const p200 = selectedProduct.price200 || (p100*2);
@@ -605,7 +605,7 @@
 
             // İçecekleri Listele (Menüye göre özelleştirilmiş)
             let currentDrinks = [];
-            if (selectedProduct.name === "Avantaj Tabak Menü") currentDrinks = ["Uludağ Gazoz"];
+            if (selectedProduct.name === "Avantaj Tabak Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
             else if (selectedProduct.name === "Avantaj Tabak Menü 2") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
             else if (selectedProduct.name === "Avantaj Tombik Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
             else if (selectedProduct.name === "Avantaj Tombik Menü 2") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
@@ -674,7 +674,7 @@
 
         if (manualPrice > 0) {
             unitPrice = manualPrice;
-        } else if(selectedProduct.category === 'Tabak') {
+        } else if(selectedProduct.category === 'Tabak' || selectedProduct.price200) {
             if(selectedPortion === 200) unitPrice = selectedProduct.price200 || (selectedProduct.price * 2);
             else if(selectedPortion === 300) unitPrice = selectedProduct.price300 || (selectedProduct.price * 3);
             else if(selectedPortion === 400) unitPrice = selectedProduct.price400 || (selectedProduct.price * 4);
@@ -705,7 +705,7 @@
             id: Date.now(),
             productId: selectedProduct.id,
             name: selectedProduct.name,
-            portion: (selectedProduct.category === 'Tabak' && !manualInput) ? selectedPortion : null,
+            portion: ((selectedProduct.category === 'Tabak' || selectedProduct.price200) && !manualInput) ? selectedPortion : null,
             options: [...selectedOptions], // Seçenekler kopyalanır
             price: finalPrice,
             qty: selectedQty, 
@@ -828,7 +828,8 @@
     }
     function togglePriceInputs() {
         const cat = document.getElementById("new-prod-cat").value;
-        document.getElementById("extra-prices").style.display = (cat === 'Tabak') ? 'grid' : 'none';
+        const name = document.getElementById("new-prod-name").value;
+        document.getElementById("extra-prices").style.display = (cat === 'Tabak' || name === 'Çıtır Tavuklu Tabağı') ? 'grid' : 'none';
     }
     function renderMgmtTable() {
         const term = document.getElementById("mgmt-search").value.toLowerCase();
@@ -855,7 +856,7 @@
         document.getElementById("new-prod-price").value = p.price;
         togglePriceInputs();
 
-        if(p.category === 'Tabak') {
+        if(p.category === 'Tabak' || p.price200) {
             document.getElementById("new-price-200").value = p.price200 || "";
             document.getElementById("new-price-300").value = p.price300 || "";
             document.getElementById("new-price-400").value = p.price400 || "";
@@ -875,7 +876,7 @@
         if(!name || isNaN(price)) return alert("Ürün adı ve fiyatı zorunludur!");
 
         let p200=null, p300=null, p400=null;
-        if(cat === 'Tabak') {
+        if(cat === 'Tabak' || name === 'Çıtır Tavuklu Tabağı') {
             p200 = parseFloat(document.getElementById("new-price-200").value) || null;
             p300 = parseFloat(document.getElementById("new-price-300").value) || null;
             p400 = parseFloat(document.getElementById("new-price-400").value) || null;
