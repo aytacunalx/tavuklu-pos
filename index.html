@@ -219,7 +219,7 @@
         </div>
         <div style="overflow-y:auto;">
             <table class="orders-table">
-                <thead><tr><th>Saat</th><th>Müşteri</th><th>Tutar</th><th>Durum</th><th>İşlem</th></tr></thead>
+                <thead><tr><th>Tarih</th><th>Müşteri</th><th>Tutar</th><th>Durum</th><th>İşlem</th></tr></thead>
                 <tbody id="active-orders-body"></tbody>
             </table>
         </div>
@@ -498,7 +498,7 @@
         { name: "Avantaj Tabak Menü", price: 320, category: "Avantajlı Menüler" },
         { name: "Avantaj Tabak Menü 2", price: 350, category: "Avantajlı Menüler" },
         { name: "Avantaj Tombik Menü", price: 230, category: "Avantajlı Menüler" },
-        { name: "Avantaj Tombik Menü 2", price: 250, category: "Avantajlı Menüler" },
+        { name: "Avantaj Tombik Menü 2", price: 270, category: "Avantajlı Menüler" },
         { name: "Avantaj Bütün Ekmek Menü", price: 320, category: "Avantajlı Menüler" },
         { name: "Avantaj Bütün Ekmek Menü 2", price: 350, category: "Avantajlı Menüler" },
     ];
@@ -560,7 +560,12 @@
 
     function openOptionModal(id) {
         selectedProduct = allProducts.find(p => p.id === id);
-        selectedPortion = 200;
+        
+        const p100 = selectedProduct.price;
+        const p200 = selectedProduct.price200 || (p100*2);
+        const has100gr = (selectedProduct.price200 && p100 !== p200);
+
+        selectedPortion = has100gr ? 100 : 200;
         selectedOptions = [];
         selectedQty = 1; 
         selectedMenuSauce = null;
@@ -579,15 +584,16 @@
         
         if(cat === 'Tabak' || selectedProduct.price200) {
             portionWrapper.style.display = 'block';
-            const p100 = selectedProduct.price;
-            const p200 = selectedProduct.price200 || (p100*2);
             const p300 = selectedProduct.price300 || (p100*3);
             const p400 = selectedProduct.price400 || (p100*4);
-            document.getElementById("portion-container").innerHTML = `
-                <div class="portion-btn" onclick="selectPortion(this, 200)">200gr <small>${p200}₺</small></div>
-                <div class="portion-btn" onclick="selectPortion(this, 300)">300gr <small>${p300}₺</small></div>
-                <div class="portion-btn" onclick="selectPortion(this, 400)">400gr <small>${p400}₺</small></div>
-            `;
+            
+            let html = '';
+            if(has100gr) html += `<div class="portion-btn ${selectedPortion===100?'active':''}" onclick="selectPortion(this, 100)">100gr <small>${p100}₺</small></div>`;
+            html += `<div class="portion-btn ${selectedPortion===200?'active':''}" onclick="selectPortion(this, 200)">200gr <small>${p200}₺</small></div>`;
+            html += `<div class="portion-btn" onclick="selectPortion(this, 300)">300gr <small>${p300}₺</small></div>`;
+            html += `<div class="portion-btn" onclick="selectPortion(this, 400)">400gr <small>${p400}₺</small></div>`;
+            
+            document.getElementById("portion-container").innerHTML = html;
         } else {
             portionWrapper.style.display = 'none';
         }
@@ -1026,7 +1032,7 @@
         const orders=await db.orders.where('timestamp').above(today).reverse().toArray();
         document.getElementById("active-orders-body").innerHTML = orders.map(o => `
             <tr style="${o.status==='cancelled'?'opacity:0.5':''}">
-                <td>${new Date(o.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</td>
+                <td>${new Date(o.timestamp).toLocaleString('tr-TR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})}</td>
                 <td>${o.customerName||'-'}</td>
                 <td>${o.total} ₺</td>
                 <td>${o.status==='active'?'✅':'❌'}</td>
@@ -1041,40 +1047,103 @@
     
     async function closeDay() {
         if(!confirm("GÜN SONU DETAYLI RAPORU ALINIYOR!")) return;
-        const today = new Date(); today.setHours(0,0,0,0);
+        
+        const today = new Date(); 
+        today.setHours(0,0,0,0);
+        
+        // Sadece bugünün siparişlerini al
         const allOrders = await db.orders.where('timestamp').above(today).toArray();
         const orders = allOrders.filter(o => o.status === 'active');
 
-        let total = 0, cash = 0, credit = 0;
-        let tableRows = "";
+        let totalRevenue = 0;
+        let totalCash = 0;
+        let totalCredit = 0;
+        
+        // Sipariş Tipleri İstatistiği
+        const typeStats = {}; // { 'Paket': {count:0, total:0}, ... }
+
+        // Ürün İstatistiği
+        const productStats = {}; // { 'Ürün Adı': {qty:0, total:0} }
 
         orders.forEach(o => {
-            total += o.total;
-            if(o.paymentMethod === 'Nakit') cash += o.total; else credit += o.total;
-            const time = new Date(o.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            tableRows += `<tr><td>${time}</td><td>${o.orderType}</td><td style="text-align:right;">${o.total.toFixed(2)}</td><td style="text-align:center;">${o.paymentMethod === 'Nakit' ? 'N' : 'K'}</td></tr>`;
+            totalRevenue += o.total;
+            if(o.paymentMethod === 'Nakit') totalCash += o.total; 
+            else totalCredit += o.total;
+
+            // Tip Analizi
+            const t = o.orderType || 'Diğer';
+            if(!typeStats[t]) typeStats[t] = { count: 0, total: 0 };
+            typeStats[t].count++;
+            typeStats[t].total += o.total;
+
+            // Ürün Analizi
+            if(o.items && Array.isArray(o.items)) {
+                o.items.forEach(item => {
+                    const pName = item.name;
+                    if(!productStats[pName]) productStats[pName] = { qty: 0, total: 0 };
+                    productStats[pName].qty += item.qty;
+                    productStats[pName].total += item.price;
+                });
+            }
         });
 
+        // Ürünleri çok satandan aza sırala
+        const sortedProducts = Object.entries(productStats).sort((a, b) => b[1].qty - a[1].qty);
+
+        // HTML Oluştur
+        let typeRows = Object.entries(typeStats).map(([type, stat]) => `
+            <tr>
+                <td>${type}</td>
+                <td style="text-align:center;">${stat.count}</td>
+                <td style="text-align:right;">${stat.total.toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        let productRows = sortedProducts.map(([name, stat]) => `
+            <tr>
+                <td>${name.substring(0, 22)}</td>
+                <td style="text-align:center;">${stat.qty}</td>
+                <td style="text-align:right;">${stat.total.toFixed(2)}</td>
+            </tr>
+        `).join('');
+
         const html = `
-            <div class="r-header"><div class="r-logo">GÜN SONU</div><div>${new Date().toLocaleDateString('tr-TR')}</div></div>
-            <div class="r-separator"></div>
-            <table class="r-table" style="width:100%; font-size:9pt;">
-                <thead><tr><th style="text-align:left;">Saat</th><th style="text-align:left;">Tip</th><th style="text-align:right;">Tutar</th><th style="text-align:center;">Öd.</th></tr></thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-            <div class="r-separator"></div>
-            <div style="font-size:10pt;">
-                <div class="r-info-row"><span>Toplam Adet:</span><span>${orders.length}</span></div>
-                <div class="r-info-row"><span>Nakit:</span><span>${cash.toFixed(2)} TL</span></div>
-                <div class="r-info-row"><span>Kredi Kartı:</span><span>${credit.toFixed(2)} TL</span></div>
-                <div class="r-double-separator"></div>
-                <div class="r-total-line" style="text-align:right;">TOPLAM: ${total.toFixed(2)} TL</div>
+            <div class="r-header">
+                <div class="r-logo">GÜN SONU (Z)</div>
+                <div>${new Date().toLocaleDateString('tr-TR')}</div>
+                <div class="r-sub">${new Date().toLocaleTimeString('tr-TR')}</div>
             </div>
-            <div class="r-footer">İmza: _______________</div>
+            <div class="r-separator"></div>
+            
+            <div style="font-weight:bold; text-align:center; margin-bottom:5px;">GENEL ÖZET</div>
+            <div class="r-info-row"><span>Toplam Ciro:</span><span style="font-weight:bold;">${totalRevenue.toFixed(2)} TL</span></div>
+            <div class="r-info-row"><span>Toplam Sipariş:</span><span>${orders.length}</span></div>
+            <div class="r-info-row"><span>Nakit:</span><span>${totalCash.toFixed(2)} TL</span></div>
+            <div class="r-info-row"><span>Kredi Kartı:</span><span>${totalCredit.toFixed(2)} TL</span></div>
+            
+            <div class="r-separator"></div>
+            <div style="font-weight:bold; text-align:center; margin-bottom:5px;">SİPARİŞ TİPLERİ</div>
+            <table class="r-table" style="width:100%; font-size:9pt;">
+                <thead><tr><th style="text-align:left;">Tip</th><th style="text-align:center;">Adet</th><th style="text-align:right;">Tutar</th></tr></thead>
+                <tbody>${typeRows}</tbody>
+            </table>
+
+            <div class="r-separator"></div>
+            <div style="font-weight:bold; text-align:center; margin-bottom:5px;">ÜRÜN SATIŞLARI</div>
+            <table class="r-table" style="width:100%; font-size:8pt;">
+                <thead><tr><th style="text-align:left;">Ürün</th><th style="text-align:center;">Adet</th><th style="text-align:right;">Tutar</th></tr></thead>
+                <tbody>${productRows}</tbody>
+            </table>
+
+            <div class="r-separator"></div>
+            <div class="r-footer">
+                <div>Mali Değeri Yoktur</div>
+                <div>İmza: _______________</div>
+            </div>
         `;
         document.getElementById("receipt-area").innerHTML = html;
         window.print();
-        await db.dailyReports.put({date: new Date().toISOString().split('T')[0], totalRevenue: total});
+        await db.dailyReports.put({date: new Date().toISOString().split('T')[0], totalRevenue: totalRevenue});
     }
     
     async function openReports() {
