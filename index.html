@@ -52,9 +52,8 @@
             display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e0e0e0;
         }
 
-        .menu-section { grid-column: 1 / 2; grid-row: 1 / 2; }
-        .cart-section { grid-column: 2 / 3; grid-row: 1 / 3; }
-        .bottom-section { grid-column: 1 / 2; grid-row: 2 / 3; height: 250px; }
+        .menu-section { grid-column: 1 / 2; grid-row: 1 / 2; } /* Menu section remains */
+        .cart-section { grid-column: 2 / 3; grid-row: 1 / 2; } /* Cart section now spans full height of grid column 2 */
 
         /* KATEGORİLER */
         .category-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #eee; }
@@ -69,8 +68,8 @@
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; overflow-y: auto; padding-right: 5px; }
         .product-card {
             background: #fff; border: 1px solid #eee; border-radius: 8px;
-            padding: 10px; cursor: pointer; display: flex; flex-direction: column;
-            justify-content: space-between; height: 95px; transition: 0.1s;
+            padding: 10px; cursor: pointer; display: flex; flex-direction: column; flex-grow: 1;
+            justify-content: space-between; min-height: 95px; transition: 0.1s;
         }
         .product-card:hover { border-color: var(--primary-color); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .product-name { font-weight: 600; font-size: 0.95rem; }
@@ -171,10 +170,9 @@
 <div class="main-wrapper">
     <div class="panel menu-section">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <h3 style="margin:0; color:#444;">🍔 Menü</h3>
+            <h3 style="margin:0; color:#444;">🍔 Menü</h3> 
             <div style="display:flex; gap:5px;">
-                <button class="btn btn-secondary btn-sm" onclick="openReports()">📊 Rapor</button>
-                <button class="btn btn-secondary btn-sm" onclick="openSettings()">⚙️ Ayar</button>
+                <button class="btn btn-secondary btn-sm" onclick="openManagementOptions()">⚙️ Yönetim</button>
             </div>
         </div>
         <div id="category-filters" class="category-container"></div>
@@ -209,19 +207,6 @@
                 <span id="cart-total" style="font-size: 1.8rem; color: var(--primary-color); font-weight:800;">0.00 ₺</span>
             </div>
             <button class="btn btn-primary" onclick="completeOrder()">YAZDIR & KAYDET</button>
-        </div>
-    </div>
-
-    <div class="panel bottom-section">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-            <h4 style="margin:0;">🚀 Son İşlemler</h4>
-            <button class="btn btn-danger btn-sm" onclick="closeDay()">Z Raporu</button>
-        </div>
-        <div style="overflow-y:auto;">
-            <table class="orders-table">
-                <thead><tr><th>Tarih</th><th>Müşteri</th><th>Tutar</th><th>Durum</th><th>İşlem</th></tr></thead>
-                <tbody id="active-orders-body"></tbody>
-            </table>
         </div>
     </div>
 </div>
@@ -340,7 +325,17 @@
     <div class="modal-box" style="width: 900px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <h3>👥 Kayıtlı Müşteriler</h3>
-            <button class="icon-btn" onclick="closeModal('modal-customers')">✕</button>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button class="btn btn-success btn-sm" onclick="exportCustomersToCSV()">📥 Excel/CSV Aktar</button>
+                <button class="icon-btn" onclick="closeModal('modal-customers')">✕</button>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px; margin-bottom:15px;">
+            <input type="text" id="customer-search" placeholder="🔍 İsim veya Telefon ile Ara..." onkeyup="openCustomerList()" style="margin:0; border:1px solid #ccc;">
+            <div style="display:flex; align-items:center; gap:5px; background:#f5f5f5; padding:5px 10px; border-radius:6px; border:1px solid #ddd;">
+                <span style="font-size:0.8rem; white-space:nowrap; color:#666;">Şu tarihten beri sipariş vermeyenler:</span>
+                <input type="date" id="customer-filter-date" onchange="openCustomerList()" style="margin:0; padding:5px; font-size:0.8rem;">
+            </div>
         </div>
         <div style="max-height:600px; overflow-y:auto;">
             <table class="orders-table" style="font-size:10pt;">
@@ -350,11 +345,49 @@
                         <th>Telefon</th>
                         <th>Adres</th>
                         <th>Not</th>
-                        <th>Sipariş Sayısı</th>
+                        <th style="text-align:right;">Toplam Harcama</th>
+                        <th style="text-align:center;">Sipariş</th>
+                        <th style="text-align:center;">İşlem</th>
                     </tr>
                 </thead>
                 <tbody id="customer-list-body">
                     </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modal-edit-customer" class="modal-overlay">
+    <div class="modal-box" style="width: 400px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3>👤 Müşteri Düzenle</h3>
+            <button class="icon-btn" onclick="closeModal('modal-edit-customer')">✕</button>
+        </div>
+        <div class="section-wrapper">
+            <label class="section-label">Telefon (Değiştirilemez)</label>
+            <input type="text" id="edit-cust-phone" disabled style="background:#eee;">
+            <label class="section-label">Ad Soyad</label>
+            <input type="text" id="edit-cust-name">
+            <label class="section-label">Adres</label>
+            <textarea id="edit-cust-address" rows="3"></textarea>
+            <label class="section-label">Not (Kalıcı)</label>
+            <input type="text" id="edit-cust-note">
+        </div>
+        <button class="btn btn-success" onclick="saveCustomerEdit()">💾 Kaydet</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-edit-customer')" style="margin-top:5px;">İptal</button>
+    </div>
+</div>
+
+<div id="modal-customer-orders" class="modal-overlay">
+    <div class="modal-box" style="width: 800px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 id="customer-orders-title">📜 Sipariş Geçmişi</h3>
+            <button class="icon-btn" onclick="closeModal('modal-customer-orders')">✕</button>
+        </div>
+        <div style="max-height:500px; overflow-y:auto;">
+            <table class="orders-table">
+                <thead><tr><th>Tarih</th><th>Tutar</th><th>Tip/Ödeme</th><th>Durum</th><th>İşlem</th></tr></thead>
+                <tbody id="customer-orders-body"></tbody>
             </table>
         </div>
     </div>
@@ -407,6 +440,37 @@
     </div>
 </div>
 
+<div id="modal-management-options" class="modal-overlay">
+    <div class="modal-box" style="width: 400px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3>⚙️ Yönetim Seçenekleri</h3>
+            <button class="icon-btn" onclick="closeModal('modal-management-options')">✕</button>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr; gap:10px;">
+            <button class="btn btn-info" onclick="openReports(); closeModal('modal-management-options');">📊 Raporlar</button>
+            <button class="btn btn-info" onclick="openSettings(); closeModal('modal-management-options');">⚙️ Ürün Ayarları</button>
+            <button class="btn btn-info" onclick="openActiveOrdersModal(); closeModal('modal-management-options');">🚀 Aktif Siparişler</button>
+            <button class="btn btn-info" onclick="openCustomerList(true); closeModal('modal-management-options');">👥 Müşteri Listesi</button>
+            <button class="btn btn-danger" onclick="closeDay(); closeModal('modal-management-options');">Z Raporu Al</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-active-orders" class="modal-overlay">
+    <div class="modal-box" style="width: 700px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3>🚀 Aktif Siparişler</h3>
+            <button class="icon-btn" onclick="closeModal('modal-active-orders')">✕</button>
+        </div>
+        <div style="max-height:500px; overflow-y:auto;">
+            <table class="orders-table">
+                <thead><tr><th>Tarih</th><th>Müşteri</th><th>Tutar</th><th>Durum</th><th>İşlem</th></tr></thead>
+                <tbody id="active-orders-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div id="receipt-area"></div>
 
 <script>
@@ -433,18 +497,18 @@
 
     // GÜNCEL ÜRÜN LİSTESİ (KOD TARAFINDAKİ MASTER VERİ)
     const masterProducts = [
-        { name: "Tavuklu Tabak Dağ Kekikli ve Kremalı", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Kremalı Mantarlı ve Peynirli", price: 270, price200: 270, price300: 360, price400: 450, category: "Tabak" },
-        { name: "Tavuklu Tabak Teriyaki", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Barbekü", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Soya", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Köri", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Acılı", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Klasik", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Tatlı Ekşi", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Mexican", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Ballı Hardal", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
-        { name: "Tavuklu Tabak Sweet Chili", price: 240, price200: 240, price300: 330, price400: 420, category: "Tabak" },
+        { name: "Tavuklu Tabak Dağ Kekikli ve Kremalı", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Kremalı Mantarlı ve Peynirli", price: 290, price200: 290, price300: 380, price400: 470, category: "Tabak" },
+        { name: "Tavuklu Tabak Teriyaki", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Barbekü", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Soya", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Köri", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Acılı", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Klasik", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Tatlı Ekşi", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Mexican", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Ballı Hardal", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
+        { name: "Tavuklu Tabak Sweet Chili", price: 250, price200: 250, price300: 340, price400: 430, category: "Tabak" },
         { name: "Tavuklu Dağ Kekikli ve Kremalı(Tam)", price: 230, category: "Tam Ekmek" },
         { name: "Tavuklu Teriyaki(Tam)", price: 230, category: "Tam Ekmek" },
         { name: "Tavuklu Barbekü(Tam)", price: 230, category: "Tam Ekmek" },
@@ -456,53 +520,53 @@
         { name: "Tavuklu Mexican(Tam)", price: 230, category: "Tam Ekmek" },
         { name: "Tavuklu Ballı Hardal(Tam)", price: 230, category: "Tam Ekmek" },
         { name: "Tavuklu Sweet Chili(Tam)", price: 230, category: "Tam Ekmek" },
-        { name: "Tavuklu Dağ Kekikli ve Kremalı(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Teriyaki(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Barbekü(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Soya(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Köri(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Klasik(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Acılı(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Tatlı Ekşi(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Mexican(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Ballı Hardal(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Sweet Chili(Yarım)", price: 130, category: "Yarım Ekmek" },
-        { name: "Tavuklu Dağ Kekikli ve Kremalı(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Teriyaki(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Barbekü(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Soya(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Köri(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Klasik(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Acılı(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Tatlı Ekşi(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Mexican(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Ballı Hardal(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Sweet Chili(Tombik)", price: 140, category: "Tombik Ekmek" },
-        { name: "Tavuklu Burger", price: 230, category: "Burger" },
-        { name: "Tavuklu Cheddar Burger", price: 250, category: "Burger" },
-        { name: "Tavuklu Trüflü Mayonezli Burger", price: 250, category: "Burger" },
-        { name: "Tavuklu Gurme Burger", price: 260, category: "Burger" },
-        { name: "Kutu Kola", price: 70, category: "İçecek" },
-        { name: "Coca-Cola Zero", price: 70, category: "İçecek" },
-        { name: "Şişe Kola", price: 50, category: "İçecek" },
-        { name: "Kutu Fanta", price: 70, category: "İçecek" },
-        { name: "Şişe Fanta", price: 50, category: "İçecek" },
-        { name: "Kutu Sprite", price: 70, category: "İçecek" },
-        { name: "Kutu Fuse Tea", price: 70, category: "İçecek" },
-        { name: "Uludağ Gazoz", price: 50, category: "İçecek" },
-        { name: "Uludağ Gazoz Portakallı", price: 50, category: "İçecek" },
-        { name: "Küçük Eker Ayran 170ml", price: 20, category: "İçecek" },
-        { name: "Tombul Eker Ayran 293ml", price: 45, category: "İçecek" },
-        { name: "Maden Suyu", price: 20, category: "İçecek" },
+        { name: "Tavuklu Dağ Kekikli ve Kremalı(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Teriyaki(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Barbekü(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Soya(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Köri(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Klasik(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Acılı(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Tatlı Ekşi(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Mexican(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Ballı Hardal(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Sweet Chili(Yarım)", price: 150, category: "Yarım Ekmek" },
+        { name: "Tavuklu Dağ Kekikli ve Kremalı(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Teriyaki(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Barbekü(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Soya(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Köri(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Klasik(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Acılı(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Tatlı Ekşi(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Mexican(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Ballı Hardal(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Sweet Chili(Tombik)", price: 150, category: "Tombik Ekmek" },
+        { name: "Tavuklu Burger", price: 250, category: "Burger" },
+        { name: "Tavuklu Cheddar Burger", price: 270, category: "Burger" },
+        { name: "Tavuklu Trüflü Mayonezli Burger", price: 270, category: "Burger" },
+        { name: "Tavuklu Gurme Burger", price: 290, category: "Burger" },
+        { name: "Kutu Kola", price: 80, category: "İçecek" },
+        { name: "Coca-Cola Zero", price: 80, category: "İçecek" },
+        { name: "Şişe Kola", price: 60, category: "İçecek" },
+        { name: "Kutu Fanta", price: 80, category: "İçecek" },
+        { name: "Şişe Fanta", price: 60, category: "İçecek" },
+        { name: "Kutu Sprite", price: 80, category: "İçecek" },
+        { name: "Kutu Fuse Tea", price: 80, category: "İçecek" },
+        { name: "Uludağ Gazoz", price: 60, category: "İçecek" },
+        { name: "Uludağ Gazoz Portakallı", price: 60, category: "İçecek" },
+        { name: "Küçük Eker Ayran 170ml", price: 25, category: "İçecek" },
+        { name: "Tombul Eker Ayran 293ml", price: 60, category: "İçecek" },
+        { name: "Maden Suyu", price: 25, category: "İçecek" },
         { name: "Su", price: 15, category: "İçecek" },
         { name: "Çıtır Tavuklu Tabağı", price: 180, price200: 270, price300: 360, price400: 450, category: "Yan" },
-        { name: "Patates Kızartması", price: 85, category: "Yan" },
-        { name: "Avantaj Tabak Menü", price: 320, category: "Avantajlı Menüler" },
-        { name: "Avantaj Tabak Menü 2", price: 350, category: "Avantajlı Menüler" },
-        { name: "Avantaj Tombik Menü", price: 230, category: "Avantajlı Menüler" },
-        { name: "Avantaj Tombik Menü 2", price: 250, category: "Avantajlı Menüler" },
-        { name: "Avantaj Bütün Ekmek Menü", price: 320, category: "Avantajlı Menüler" },
-        { name: "Avantaj Bütün Ekmek Menü 2", price: 370, category: "Avantajlı Menüler" },
+        { name: "Patates Kızartması", price: 90, category: "Yan" },
+        { name: "Avantaj Tabak Gazoz veya Ayran Menü", price: 350, category: "Avantajlı Menüler" },
+        { name: "Avantaj Tabak Kola Menü", price: 380, category: "Avantajlı Menüler" },
+        { name: "Avantaj Tombik Gazoz veya Ayran Menü", price: 250, category: "Avantajlı Menüler" },
+        { name: "Avantaj Tombik Kola Menü", price: 280, category: "Avantajlı Menüler" },
+        { name: "Avantaj Bütün Ekmek Gazoz veya Ayran Menü", price: 340, category: "Avantajlı Menüler" },
+        { name: "Avantaj Bütün Ekmek Kola Menü", price: 370, category: "Avantajlı Menüler" },
     ];
 
     const chickenSauces = ["Dağ Kekikli ve Kremalı", "Teriyaki", "Barbekü", "Soya", "Köri", "Acılı", "Klasik", "Tatlı Ekşi", "Mexican", "Ballı Hardal", "Sweet Chili"];
@@ -825,7 +889,7 @@
         document.getElementById("order-note").value = "";
         document.getElementById("cust-phone").value = ""; 
         document.getElementById("cust-details").style.display = "none";
-        loadActiveOrders();
+        // loadActiveOrders() is now called when the modal opens
     }
 
     function openSettings() { 
@@ -952,8 +1016,41 @@
     }
 
     // --- YENİ: MÜŞTERİ LİSTESİ ---
-    async function openCustomerList() {
-        const customers = await db.customers.toArray();
+    async function openCustomerList(isInitial = false) {
+        const searchInput = document.getElementById("customer-search");
+        const dateInput = document.getElementById("customer-filter-date");
+        if (isInitial && searchInput) searchInput.value = "";
+        if (isInitial && dateInput) dateInput.value = "";
+        
+        const term = (searchInput?.value || "").toLowerCase();
+        const filterDate = dateInput?.value ? new Date(dateInput.value).getTime() : null;
+
+        let customers = await db.customers.toArray();
+        const allOrders = await db.orders.where('status').equals('active').toArray();
+
+        // Müşteri bazlı hesaplamalar (Harcama ve Son Sipariş Tarihi)
+        const stats = {};
+        allOrders.forEach(o => {
+            if (!stats[o.customerPhone]) stats[o.customerPhone] = { spent: 0, last: 0 };
+            stats[o.customerPhone].spent += o.total;
+            const orderTime = new Date(o.timestamp).getTime();
+            if (orderTime > stats[o.customerPhone].last) stats[o.customerPhone].last = orderTime;
+        });
+
+        if (term) {
+            customers = customers.filter(c => 
+                (c.name && c.name.toLowerCase().includes(term)) || 
+                (c.phone && c.phone.includes(term))
+            );
+        }
+
+        if (filterDate) {
+            customers = customers.filter(c => {
+                const lastOrder = stats[c.phone]?.last || 0;
+                return lastOrder <= filterDate;
+            });
+        }
+
         const tbody = document.getElementById("customer-list-body");
         tbody.innerHTML = customers.map(c => `
             <tr>
@@ -961,10 +1058,93 @@
                 <td>${c.phone}</td>
                 <td>${c.lastAddress || '-'}</td>
                 <td>${c.note || '-'}</td>
-                <td style="text-align:center;">${c.totalOrders}</td>
+                <td style="text-align:right; font-weight:bold;">${(stats[c.phone]?.spent || 0).toFixed(2)} ₺</td>
+                <td style="text-align:center;">${c.totalOrders || 0}</td>
+                <td style="text-align:center; white-space:nowrap;">
+                    <button class="btn btn-warning btn-sm" title="Sipariş Geçmişi" onclick="viewCustomerOrders('${c.phone}')">📜</button>
+                    <button class="btn btn-info btn-sm" onclick="editCustomer('${c.phone}')">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteCustomer('${c.phone}')">🗑️</button>
+                </td>
             </tr>
         `).join('');
         document.getElementById("modal-customers").style.display = "flex";
+    }
+
+    async function editCustomer(phone) {
+        const c = await db.customers.get(phone);
+        if(!c) return;
+        
+        document.getElementById("edit-cust-phone").value = c.phone;
+        document.getElementById("edit-cust-name").value = c.name;
+        document.getElementById("edit-cust-address").value = c.lastAddress || "";
+        document.getElementById("edit-cust-note").value = c.note || "";
+        
+        document.getElementById("modal-edit-customer").style.display = "flex";
+    }
+
+    async function saveCustomerEdit() {
+        const phone = document.getElementById("edit-cust-phone").value;
+        const name = document.getElementById("edit-cust-name").value;
+        const address = document.getElementById("edit-cust-address").value;
+        const note = document.getElementById("edit-cust-note").value;
+        
+        await db.customers.update(phone, { name, lastAddress: address, note });
+        alert("Müşteri bilgileri güncellendi.");
+        closeModal('modal-edit-customer');
+        openCustomerList();
+    }
+
+    async function deleteCustomer(phone) {
+        if(confirm(`${phone} numaralı müşteriyi silmek istediğinize emin misiniz?`)) {
+            await db.customers.delete(phone);
+            openCustomerList();
+        }
+    }
+
+    async function viewCustomerOrders(phone) {
+        const customer = await db.customers.get(phone);
+        const orders = await db.orders.where('customerPhone').equals(phone).reverse().toArray();
+        
+        document.getElementById("customer-orders-title").innerText = `📜 ${customer.name} - Sipariş Geçmişi`;
+        const tbody = document.getElementById("customer-orders-body");
+        
+        tbody.innerHTML = orders.length === 0 
+            ? '<tr><td colspan="5" style="text-align:center; padding:20px;">Bu müşteriye ait sipariş bulunamadı.</td></tr>'
+            : orders.map(o => `
+                <tr style="${o.status==='cancelled'?'opacity:0.5':''}">
+                    <td>${new Date(o.timestamp).toLocaleString('tr-TR')}</td>
+                    <td>${o.total.toFixed(2)} ₺</td>
+                    <td>${o.orderType} / ${o.paymentMethod}</td>
+                    <td>${o.status==='active'?'✅':'❌'}</td>
+                    <td><button class="btn-secondary btn-sm" onclick="printOldOrder(${o.id})">🖨️ Yeniden Yazdır</button></td>
+                </tr>`).join('');
+        document.getElementById("modal-customer-orders").style.display = "flex";
+    }
+
+    async function exportCustomersToCSV() {
+        const customers = await db.customers.toArray();
+        const allOrders = await db.orders.where('status').equals('active').toArray();
+        
+        const spendingMap = {};
+        allOrders.forEach(o => {
+            spendingMap[o.customerPhone] = (spendingMap[o.customerPhone] || 0) + o.total;
+        });
+
+        if (customers.length === 0) return alert("Dışa aktarılacak müşteri bulunamadı.");
+
+        let csv = "\uFEFF"; // Excel'in Türkçe karakterleri tanıması için BOM ekliyoruz
+        csv += "Ad Soyad,Telefon,Adres,Not,Toplam Harcama,Sipariş Sayısı\n";
+        
+        customers.forEach(c => {
+            const totalSpent = (spendingMap[c.phone] || 0).toFixed(2);
+            csv += `"${c.name || ''}","${c.phone || ''}","${(c.lastAddress || '').replace(/"/g, '""')}","${(c.note || '').replace(/"/g, '""')}","${totalSpent} ₺","${c.totalOrders || 0}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `musteri_listesi_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
     }
 
     function printReceipt(id, cust, items, total, discount, extra, type, pay, doubleCopy = false) {
@@ -1018,6 +1198,16 @@
         window.print();
     }
 
+    function openManagementOptions() {
+        document.getElementById("modal-management-options").style.display = "flex";
+    }
+
+    async function openActiveOrdersModal() {
+        await loadActiveOrders(); // Load orders when the modal is opened
+        document.getElementById("modal-active-orders").style.display = "flex";
+    }
+
+
     async function printOldOrder(id) {
         const o = await db.orders.get(id);
         let address = '';
@@ -1031,7 +1221,7 @@
 
     async function loadActiveOrders() {
         const today=new Date(); today.setHours(0,0,0,0);
-        const orders=await db.orders.where('timestamp').above(today).reverse().toArray();
+        const orders = await db.orders.where('timestamp').above(today).reverse().toArray();
         document.getElementById("active-orders-body").innerHTML = orders.map(o => `
             <tr style="${o.status==='cancelled'?'opacity:0.5':''}">
                 <td>${new Date(o.timestamp).toLocaleString('tr-TR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})}</td>
