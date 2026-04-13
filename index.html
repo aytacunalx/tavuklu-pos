@@ -677,12 +677,12 @@
 
             // İçecekleri Listele (Menüye göre özelleştirilmiş)
             let currentDrinks = [];
-            if (selectedProduct.name === "Avantaj Tabak Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
-            else if (selectedProduct.name === "Avantaj Tabak Menü 2") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
-            else if (selectedProduct.name === "Avantaj Tombik Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
-            else if (selectedProduct.name === "Avantaj Tombik Menü 2") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
-            else if (selectedProduct.name === "Avantaj Bütün Ekmek Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
-            else if (selectedProduct.name === "Avantaj Bütün Ekmek Menü 2") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
+            if (selectedProduct.name === "Avantaj Tabak Gazoz veya Ayran Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
+            else if (selectedProduct.name === "Avantaj Tabak Kola Menü") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
+            else if (selectedProduct.name === "Avantaj Tombik Gazoz veya Ayran Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
+            else if (selectedProduct.name === "Avantaj Tombik Kola Menü") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
+            else if (selectedProduct.name === "Avantaj Bütün Ekmek Gazoz veya Ayran Menü") currentDrinks = ["Uludağ Gazoz", "Ayran"];
+            else if (selectedProduct.name === "Avantaj Bütün Ekmek Kola Menü") currentDrinks = ["Kutu Kola", "Cola Zero", "Kutu Fanta", "Kutu Sprite", "Kutu Fuse Tea"];
             else currentDrinks = ["Ayran", "Su", "Uludağ Gazoz"];
 
             document.getElementById("menu-drink-grid").innerHTML = currentDrinks.map(d => `
