@@ -664,7 +664,6 @@
                             <option value="Tabak">Tabak</option>
                             <option value="Tavuklu Pilav">Tavuklu Pilav</option>
                             <option value="Tombik Ekmek">Tombik Ekmek</option>
-                            <option value="Yarım Ekmek">Yarım Ekmek</option>
                             <option value="Tam Ekmek">Tam Ekmek</option>
                             <option value="Burger">Burger</option>
                             <option value="İçecek">İçecek</option>
@@ -938,7 +937,6 @@
             { name: "Tavuklu Tabak Klasik", price: 270, price200: 270, price300: 370, price400: 470, category: "Tabak" },
             { name: "Tavuklu Tabak Tatlı Ekşi", price: 270, price200: 270, price300: 370, price400: 470, category: "Tabak" },
             { name: "Tavuklu Tabak Mexican", price: 270, price200: 270, price300: 370, price400: 470, category: "Tabak" },
-            { name: "Tavuklu Tabak Ballı Hardal", price: 270, price200: 270, price300: 370, price400: 470, category: "Tabak" },
             { name: "Tavuklu Tabak Sweet Chili", price: 270, price200: 270, price300: 370, price400: 470, category: "Tabak" },
             { name: "Tavuklu Dağ Kekikli ve Kremalı(Tam)", price: 180, category: "Tam Ekmek" },
             { name: "Tavuklu Teriyaki(Tam)", price: 180, category: "Tam Ekmek" },
@@ -949,19 +947,7 @@
             { name: "Tavuklu Acılı(Tam)", price: 180, category: "Tam Ekmek" },
             { name: "Tavuklu Tatlı Ekşi(Tam)", price: 180, category: "Tam Ekmek" },
             { name: "Tavuklu Mexican(Tam)", price: 180, category: "Tam Ekmek" },
-            { name: "Tavuklu Ballı Hardal(Tam)", price: 180, category: "Tam Ekmek" },
             { name: "Tavuklu Sweet Chili(Tam)", price: 180, category: "Tam Ekmek" },
-            { name: "Tavuklu Dağ Kekikli ve Kremalı(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Teriyaki(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Barbekü(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Soya(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Köri(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Klasik(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Acılı(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Tatlı Ekşi(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Mexican(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Ballı Hardal(Yarım)", price: 150, category: "Yarım Ekmek" },
-            { name: "Tavuklu Sweet Chili(Yarım)", price: 150, category: "Yarım Ekmek" },
             { name: "Tavuklu Dağ Kekikli ve Kremalı(Tombik)", price: 150, category: "Tombik Ekmek" },
             { name: "Tavuklu Teriyaki(Tombik)", price: 150, category: "Tombik Ekmek" },
             { name: "Tavuklu Barbekü(Tombik)", price: 150, category: "Tombik Ekmek" },
@@ -971,7 +957,6 @@
             { name: "Tavuklu Acılı(Tombik)", price: 150, category: "Tombik Ekmek" },
             { name: "Tavuklu Tatlı Ekşi(Tombik)", price: 150, category: "Tombik Ekmek" },
             { name: "Tavuklu Mexican(Tombik)", price: 150, category: "Tombik Ekmek" },
-            { name: "Tavuklu Ballı Hardal(Tombik)", price: 150, category: "Tombik Ekmek" },
             { name: "Tavuklu Sweet Chili(Tombik)", price: 150, category: "Tombik Ekmek" },
             { name: "Tavuklu Pilav Klasik", price: 150, category: "Tavuklu Pilav" },
             { name: "Tavuklu Pilav Dağ Kekikli ve Kremalı", price: 150, category: "Tavuklu Pilav" },
@@ -983,7 +968,6 @@
             { name: "Tavuklu Pilav Acılı", price: 150, category: "Tavuklu Pilav" },
             { name: "Tavuklu Pilav Tatlı Ekşi", price: 150, category: "Tavuklu Pilav" },
             { name: "Tavuklu Pilav Mexican", price: 150, category: "Tavuklu Pilav" },
-            { name: "Tavuklu Pilav Ballı Hardal", price: 150, category: "Tavuklu Pilav" },
             { name: "Tavuklu Pilav Sweet Chili", price: 150, category: "Tavuklu Pilav" },
             { name: "Tavuklu Burger", price: 270, category: "Burger" },
             { name: "Tavuklu Cheddar Burger", price: 290, category: "Burger" },
@@ -1012,7 +996,7 @@
             { name: "Avantaj Bütün Ekmek Kola Menü", price: 320, category: "Avantajlı Menüler" },
         ];
 
-        const chickenSauces = ["Dağ Kekikli ve Kremalı", "Teriyaki", "Barbekü", "Soya", "Köri", "Acılı", "Klasik", "Tatlı Ekşi", "Mexican", "Ballı Hardal", "Sweet Chili"];
+        const chickenSauces = ["Dağ Kekikli ve Kremalı", "Teriyaki", "Barbekü", "Soya", "Köri", "Acılı", "Klasik", "Tatlı Ekşi", "Mexican", "Sweet Chili"];
         // Menü içeriklerini fişte göstermek için sabit içerikler
         const menuFixedContents = ["Patates Kızartması"];
 
@@ -1023,6 +1007,20 @@
 
         // Kod tarafındaki fiyatları veritabanı ile eşle (Her açılışta çalışır)
         async function syncPricesFromCode() {
+            // Kaldırılan ürünleri (Yarım Ekmek ve Ballı Hardal) yerel veritabanından temizle
+            try {
+                const toDelete = await db.products.filter(p => 
+                    p.category === 'Yarım Ekmek' || 
+                    (p.name && p.name.includes('(Yarım)')) || 
+                    (p.name && p.name.toLowerCase().includes('hardal'))
+                ).toArray();
+                for (const item of toDelete) {
+                    await db.products.delete(item.id);
+                }
+            } catch (e) {
+                console.error("Eski ürün temizleme hatası:", e);
+            }
+
             for (const p of masterProducts) {
                 const existing = await db.products.where('name').equals(p.name).first();
                 if (existing) {
@@ -1049,7 +1047,7 @@
         }
 
         function renderCategories() {
-            const categories = ['HEPSİ', ...new Set(allProducts.map(p => p.category))];
+            const categories = ['HEPSİ', ...new Set(allProducts.map(p => p.category))].filter(c => c !== 'Yarım Ekmek');
             document.getElementById("category-filters").innerHTML = categories.map(cat => `
             <div class="cat-btn ${cat === activeCategory ? 'active' : ''}" onclick="filterCat('${cat}')">${cat}</div>
         `).join('');
@@ -1343,8 +1341,8 @@
             document.getElementById("modal-settings").style.display = "flex";
         }
         function updateCategorySelectOptions(selectedCat = null) {
-            const defaultCats = ["Tabak", "Tavuklu Pilav", "Tombik Ekmek", "Yarım Ekmek", "Tam Ekmek", "Burger", "İçecek", "Yan ürünler", "Avantajlı Menüler"];
-            const currentCats = [...new Set([...defaultCats, ...allProducts.map(p => p.category)])].filter(Boolean);
+            const defaultCats = ["Tabak", "Tavuklu Pilav", "Tombik Ekmek", "Tam Ekmek", "Burger", "İçecek", "Yan ürünler", "Avantajlı Menüler"];
+            const currentCats = [...new Set([...defaultCats, ...allProducts.map(p => p.category)])].filter(c => c && c !== 'Yarım Ekmek');
 
             const select = document.getElementById("new-prod-cat");
             let html = currentCats.map(c => `<option value="${c}">${c}</option>`).join('');
